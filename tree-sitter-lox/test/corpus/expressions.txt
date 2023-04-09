@@ -1,0 +1,25 @@
+==================
+factor expression
+==================
+
+1+1;
+
+---
+
+(program
+ (declaration
+  (statement
+   (expr_stmt
+    (expression
+     (equality
+      (comparision
+       (term
+        (factor
+         (unary
+          (primary
+           (number))))
+        (factor
+         (unary
+          (primary
+           (number))))))))))))
+
