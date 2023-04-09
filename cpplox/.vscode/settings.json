@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "__tuple": "cpp",
+        "array": "cpp",
+        "vector": "cpp",
+        "iosfwd": "cpp",
+        "string": "cpp",
+        "__string": "cpp",
+        "deque": "cpp",
+        "filesystem": "cpp",
+        "system_error": "cpp",
+        "__functional_03": "cpp",
+        "functional": "cpp"
+    },
+    "debug.console.collapseIdenticalLines": false,
+}
