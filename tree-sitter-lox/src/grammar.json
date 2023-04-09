@@ -1,0 +1,21 @@
+{
+  "name": "lox",
+  "rules": {
+    "program": {
+      "type": "STRING",
+      "value": "hello"
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": []
+}
+
