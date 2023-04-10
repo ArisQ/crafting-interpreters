@@ -32,3 +32,14 @@ print a;
     print b;
 }
 print a;
+
+if (true) {
+    print 1;
+} else {
+    print 2;
+}
+
+if(true) print 1;
+else print 2;
+
+

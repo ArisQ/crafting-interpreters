@@ -12,12 +12,22 @@ module.exports = grammar({
         _statement: $ => choice(
             $.expr_stmt,
             $.print_stmt,
+            $.if_stmt,
+            $.block,
         ),
         expr_stmt: $ => seq($._expression, ';'),
         print_stmt: $ => seq('print', $._expression, ';'),
+        block: $ => seq('{', repeat($._declaration) ,'}'),
+        if_stmt: $ => prec.left(1, seq(
+            'if', '(', $._expression, ')', $._statement,
+            optional(seq('else', $._statement)),
+        )),
 
         // page 80
-        _expression: $ => $._equality,
+        _expression: $ => $._assignment,
+
+        _assignment: $ => choice($._equality, $.assignment),
+        assignment: $ => seq($.identifier, '=', $._assignment),
 
         _equality: $ => choice($._comparision, $.equality),
         equality: $ => seq($._comparision, repeat1(seq(choice('!=', '=='), $._comparision))),
@@ -46,7 +56,7 @@ module.exports = grammar({
         nil: $ => 'nil',
         bool: $ => choice('true', 'false'),
         group: $ => seq('(', $._expression, ')'),
-        number: $ => /\d+/,
+        number: $ => /\d+(\.\d+)?/,
         identifier: $ => /[a-z][a-z0-9]*/,
         string: $ => seq('"', /[^"]*/, '"'),
 

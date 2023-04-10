@@ -1,7 +1,15 @@
 ; highlights.scm
 
+; [
+;  "print",
+;  "var",
+;  "if",
+;  "else"
+; ] @keyword
 "print" @keyword
 "var" @keyword
+"if" @keyword
+"else" @keyword
 
 "!=" @operator
 "==" @operator
