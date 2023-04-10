@@ -7,19 +7,8 @@ factor expression
 ---
 
 (program
- (declaration
-  (statement
-   (expr_stmt
-    (expression
-     (equality
-      (comparision
-       (term
-        (factor
-         (unary
-          (primary
-           (number))))
-        (factor
-         (unary
-          (primary
-           (number))))))))))))
+ (expr_stmt
+  (term
+   (number)
+   (number))))
 

@@ -1,0 +1,4 @@
+; highlights.scm
+
+"print" @keyword
+
