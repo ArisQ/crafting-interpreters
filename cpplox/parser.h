@@ -146,6 +146,7 @@ class Parser {
     // statements
     std::shared_ptr<Stmt> statement() {
         if(match(IF)) { return ifStatement(); }
+        if(match(WHILE)) { return whileStatement(); }
         if(match(PRINT)) { return printStatement(); }
         if(match(LEFT_BRACE)) { return blockStatement(); }
         return expressionStatement();
@@ -179,6 +180,14 @@ class Parser {
             elseBranch = statement();
         }
         return std::make_shared<If>(condition,thenBranch,elseBranch);
+    }
+    std::shared_ptr<Stmt> whileStatement() {
+        consume(LEFT_PAREN, "Expect '(' after while.");
+        auto condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after while condition.");
+
+        auto body = statement();
+        return std::make_shared<While>(condition, body);
     }
 
     // overload for single type

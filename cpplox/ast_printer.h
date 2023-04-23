@@ -118,6 +118,20 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
         }
         return ret;
     }
+    std::string visitWhile(While *stmt) {
+        std::vector<std::string> result;
+        result.push_back(stmtIndent("("));
+        auto oldIndent = incrIndent();
+        result.push_back(stmtIndent( "while " + stmt->condition->accept(this)));
+        result.push_back(stmt->body->accept(this));
+        restoreIndent(oldIndent);
+        result.push_back(stmtIndent(")"));
+        std::string ret;
+        for(const auto &r: result) {
+            ret += r;
+        }
+        return ret;
+    }
 public:
     const std::string print(std::vector<std::shared_ptr<Stmt>> stmts) {
         std::string ret;

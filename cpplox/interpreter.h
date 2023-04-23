@@ -96,7 +96,8 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
             case LESS_EQUAL:
                 return evalBin(less_equal, left, right, number_err);
             case BANG_EQUAL:
-                return evalBin(not_equal, left, right, number_err);
+                // return evalBin(not_equal, left, right, number_err);
+                return std::make_shared<BoolValue>((*left) != right);
             case EQUAL_EQUAL: {
                 return std::make_shared<BoolValue>((*left) == right);
             }
@@ -192,6 +193,11 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
             evaluate(stmt->thenBranch);
         } else if (stmt->elseBranch != nullptr) {
             evaluate(stmt->elseBranch);
+        }
+    }
+    void visitWhile(While *stmt) {
+        while (isTruthy(evaluate(stmt->condition))) {
+            evaluate(stmt->body);
         }
     }
 public:

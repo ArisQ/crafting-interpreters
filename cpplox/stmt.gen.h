@@ -12,6 +12,7 @@
 // If         : *Expr condition, *Stmt thenBranch, *Stmt elseBranch
 // Print      : *Expr expression
 // Var        : Token name, *Expr initializer
+// While      : *Expr condition, *Stmt body
 // GENERATED
 // class declaration
 class Block;
@@ -19,6 +20,7 @@ class Expression;
 class If;
 class Print;
 class Var;
+class While;
 
 // templated vistor for inherit
 template <typename T>
@@ -29,6 +31,7 @@ public:
     virtual T visitIf(If *) = 0;
     virtual T visitPrint(Print *) = 0;
     virtual T visitVar(Var *) = 0;
+    virtual T visitWhile(While *) = 0;
 };
 
 // internal general vistor for virtual accept
@@ -39,6 +42,7 @@ public:
     virtual std::shared_ptr<void> visitIf(If *) = 0;
     virtual std::shared_ptr<void> visitPrint(Print *) = 0;
     virtual std::shared_ptr<void> visitVar(Var *) = 0;
+    virtual std::shared_ptr<void> visitWhile(While *) = 0;
 };
 
 // templated vistor to internal vistor
@@ -62,6 +66,9 @@ public:
     std::shared_ptr<void> visitVar(Var *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitVar(e)));
     }
+    std::shared_ptr<void> visitWhile(While *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitWhile(e)));
+    }
 };
 
 // 返回值类型为shared_ptr的模板特化
@@ -84,6 +91,9 @@ public:
     }
     std::shared_ptr<void> visitVar(Var *e) {
         return std::static_pointer_cast<void>(v->visitVar(e));
+    }
+    std::shared_ptr<void> visitWhile(While *e) {
+        return std::static_pointer_cast<void>(v->visitWhile(e));
     }
 };
 
@@ -111,6 +121,10 @@ public:
     }
     std::shared_ptr<void> visitVar(Var *e) {
         v->visitVar(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitWhile(While *e) {
+        v->visitWhile(e);
         return nullptr;
     }
 };
@@ -177,6 +191,14 @@ struct Var: public Stmt {
 
     std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitVar(this); }
     Var(Token name, std::shared_ptr<Expr> initializer): name(name), initializer(initializer) {}
+};
+
+struct While: public Stmt {
+    std::shared_ptr<Expr> condition;
+    std::shared_ptr<Stmt> body;
+
+    std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitWhile(this); }
+    While(std::shared_ptr<Expr> condition, std::shared_ptr<Stmt> body): condition(condition), body(body) {}
 };
 
 // GENERATOR_END
