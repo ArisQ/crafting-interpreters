@@ -9,12 +9,14 @@
 // GENERATOR_START
 // Block      : *Stmt[] statements
 // Expression : *Expr expression
+// If         : *Expr condition, *Stmt thenBranch, *Stmt elseBranch
 // Print      : *Expr expression
 // Var        : Token name, *Expr initializer
 // GENERATED
 // class declaration
 class Block;
 class Expression;
+class If;
 class Print;
 class Var;
 
@@ -24,6 +26,7 @@ class StmtVisitor {
 public:
     virtual T visitBlock(Block *) = 0;
     virtual T visitExpression(Expression *) = 0;
+    virtual T visitIf(If *) = 0;
     virtual T visitPrint(Print *) = 0;
     virtual T visitVar(Var *) = 0;
 };
@@ -33,6 +36,7 @@ class _StmtVisitor {
 public:
     virtual std::shared_ptr<void> visitBlock(Block *) = 0;
     virtual std::shared_ptr<void> visitExpression(Expression *) = 0;
+    virtual std::shared_ptr<void> visitIf(If *) = 0;
     virtual std::shared_ptr<void> visitPrint(Print *) = 0;
     virtual std::shared_ptr<void> visitVar(Var *) = 0;
 };
@@ -48,6 +52,9 @@ public:
     }
     std::shared_ptr<void> visitExpression(Expression *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitExpression(e)));
+    }
+    std::shared_ptr<void> visitIf(If *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitIf(e)));
     }
     std::shared_ptr<void> visitPrint(Print *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitPrint(e)));
@@ -69,6 +76,9 @@ public:
     std::shared_ptr<void> visitExpression(Expression *e) {
         return std::static_pointer_cast<void>(v->visitExpression(e));
     }
+    std::shared_ptr<void> visitIf(If *e) {
+        return std::static_pointer_cast<void>(v->visitIf(e));
+    }
     std::shared_ptr<void> visitPrint(Print *e) {
         return std::static_pointer_cast<void>(v->visitPrint(e));
     }
@@ -89,6 +99,10 @@ public:
     }
     std::shared_ptr<void> visitExpression(Expression *e) {
         v->visitExpression(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitIf(If *e) {
+        v->visitIf(e);
         return nullptr;
     }
     std::shared_ptr<void> visitPrint(Print *e) {
@@ -139,6 +153,15 @@ struct Expression: public Stmt {
 
     std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitExpression(this); }
     Expression(std::shared_ptr<Expr> expression): expression(expression) {}
+};
+
+struct If: public Stmt {
+    std::shared_ptr<Expr> condition;
+    std::shared_ptr<Stmt> thenBranch;
+    std::shared_ptr<Stmt> elseBranch;
+
+    std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitIf(this); }
+    If(std::shared_ptr<Expr> condition, std::shared_ptr<Stmt> thenBranch, std::shared_ptr<Stmt> elseBranch): condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
 };
 
 struct Print: public Stmt {

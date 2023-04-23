@@ -127,6 +127,7 @@ class Parser {
     }
     // statements
     std::shared_ptr<Stmt> statement() {
+        if(match(IF)) { return ifStatement(); }
         if(match(PRINT)) { return printStatement(); }
         if(match(LEFT_BRACE)) { return blockStatement(); }
         return expressionStatement();
@@ -148,6 +149,18 @@ class Parser {
         }
         consume(RIGHT_BRACE, "Expect '}' after block;");
         return std::make_shared<Block>(stmts);
+    }
+    std::shared_ptr<Stmt> ifStatement() {
+        consume(LEFT_PAREN, "Expect '(' after if.");
+        auto condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after if condition.");
+
+        auto thenBranch = statement();
+        std::shared_ptr<Stmt> elseBranch = nullptr;
+        if(match(ELSE)) {
+            elseBranch = statement();
+        }
+        return std::make_shared<If>(condition,thenBranch,elseBranch);
     }
 
     // overload for single type

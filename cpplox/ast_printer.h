@@ -58,28 +58,60 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
         return "<" + e->name.lexeme + ">";
     }
 
+    std::string indent = "";
+    std::string incrIndent() {
+        auto oldIdnent = indent;
+        indent = indent + "  ";
+        return oldIdnent;
+    }
+    void restoreIndent(std::string ind) {
+        indent = ind;
+    }
+    std::string stmtIndent(std::string str) {
+        return indent + str + '\n';
+    }
+
     // visit statements
     std::string visitExpression(Expression *stmt) {
-        return stmt->expression->accept(this);
+        return stmtIndent(stmt->expression->accept(this));
     }
     std::string visitPrint(Print *stmt) {
-        return parenthesize("print", {stmt->expression});
+        return stmtIndent(parenthesize("print", {stmt->expression}));
     }
     std::string visitVar(Var *stmt) {
         // return parenthesize("var<" + stmt->name.lexeme + ">", {stmt->initializer});
-        return parenthesize("var", stmt->name, {stmt->initializer});
+        return stmtIndent(parenthesize("var", stmt->name, {stmt->initializer}));
     }
     std::string visitBlock(Block *stmt) {
         std::vector<std::string> result;
-        result.push_back("(");
+        result.push_back(stmtIndent("("));
+        auto oldIndent = incrIndent();
         for(auto &s: visit(stmt->statements)) {
-            result.push_back("  " + s);
+            result.push_back(s);
         }
-        result.push_back(")");
+        restoreIndent(oldIndent);
+        result.push_back(stmtIndent(")"));
         std::string ret;
         for(const auto &r: result) {
             ret += r;
-            ret += '\n';
+        }
+        return ret;
+    }
+    std::string visitIf(If *stmt) {
+        std::vector<std::string> result;
+        result.push_back(stmtIndent("("));
+        auto oldIndent = incrIndent();
+        result.push_back(stmtIndent( "if " + stmt->condition->accept(this)));
+        result.push_back(stmt->thenBranch->accept(this));
+        if(stmt->elseBranch != nullptr) {
+            result.push_back(stmtIndent("else"));
+            result.push_back(stmt->elseBranch->accept(this));
+        }
+        restoreIndent(oldIndent);
+        result.push_back(stmtIndent(")"));
+        std::string ret;
+        for(const auto &r: result) {
+            ret += r;
         }
         return ret;
     }
@@ -88,7 +120,6 @@ public:
         std::string ret;
         for(const auto &r: visit(stmts)) {
             ret += r;
-            ret += '\n';
         }
         return ret;
     }

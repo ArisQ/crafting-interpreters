@@ -177,6 +177,14 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         }
         environment = previous;
     }
+    void visitIf(If *stmt) {
+        auto condition  = evaluate(stmt->condition);
+        if(isTruthy(condition)) {
+            evaluate(stmt->thenBranch);
+        } else if (stmt->elseBranch != nullptr) {
+            evaluate(stmt->elseBranch);
+        }
+    }
 public:
     Interpreter() {
         environment = std::make_shared<Environment>();
@@ -192,6 +200,9 @@ public:
         for(const auto stmt: stmts) {
             stmt->accept(this);
         }
+    }
+    void evaluate(std::shared_ptr<Stmt> stmt) {
+        stmt->accept(this);
     }
 };
 
