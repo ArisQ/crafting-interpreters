@@ -115,6 +115,15 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     std::shared_ptr<Value> visitLiteral(Literal *e) {
         return e->value;
     }
+    std::shared_ptr<Value> visitLogical(Logical *e) {
+        auto left = evaluate(e->left);
+        if (e->op.type==OR) {
+            if(isTruthy(left)) return left;
+        } else {
+            if(!isTruthy(left)) return left;
+        }
+        return evaluate(e->right);
+    }
     std::shared_ptr<Value> visitUnary(Unary *e) {
         auto right = evaluate(e->right);
         switch(e->op.type) {

@@ -9,6 +9,7 @@
 // Binary      : *Expr left, Token op, *Expr right
 // Grouping    : *Expr expression
 // Literal     : *Value value
+// Logical     : *Expr left, Token op, *Expr right
 // Unary       : Token op, *Expr right
 // Variable    : Token name
 // GENERATED

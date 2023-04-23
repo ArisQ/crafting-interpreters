@@ -29,7 +29,7 @@ class Parser {
         return assignment();
     }
     std::shared_ptr<Expr> assignment() {
-        auto expr = equality();
+        auto expr = logicalOr();
         if (match(EQUAL)) {
             auto equal = previous();
             auto var = std::dynamic_pointer_cast<Variable>(expr); // 解析到了Variable，最后返回的AST是Assign
@@ -37,6 +37,24 @@ class Parser {
                 return std::make_shared<Assign>(var->name, equality());
             }
             throw RuntimeError(equal, "Invalid assignment target");
+        }
+        return expr;
+    }
+    std::shared_ptr<Expr> logicalOr() {
+        auto expr = logicalAnd();
+        while(match(OR)) {
+            Token op = previous();
+            auto right = logicalAnd();
+            expr = std::make_shared<Logical>(expr, op, right);
+        }
+        return expr;
+    }
+    std::shared_ptr<Expr> logicalAnd() {
+        auto expr = equality();
+        while(match(AND)) {
+            Token op = previous();
+            auto right = equality();
+            expr = std::make_shared<Logical>(expr, op, right);
         }
         return expr;
     }

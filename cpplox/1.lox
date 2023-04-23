@@ -57,4 +57,5 @@ if (true) {
 if(true) print 1;
 else print 2;
 
-
+print a==1 and "x" or "y";
+print a!=1 and "x" or "y";

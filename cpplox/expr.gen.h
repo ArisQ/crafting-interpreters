@@ -10,6 +10,7 @@
 // Binary      : *Expr left, Token op, *Expr right
 // Grouping    : *Expr expression
 // Literal     : *Value value
+// Logical     : *Expr left, Token op, *Expr right
 // Unary       : Token op, *Expr right
 // Variable    : Token name
 // GENERATED
@@ -18,6 +19,7 @@ class Assign;
 class Binary;
 class Grouping;
 class Literal;
+class Logical;
 class Unary;
 class Variable;
 
@@ -29,6 +31,7 @@ public:
     virtual T visitBinary(Binary *) = 0;
     virtual T visitGrouping(Grouping *) = 0;
     virtual T visitLiteral(Literal *) = 0;
+    virtual T visitLogical(Logical *) = 0;
     virtual T visitUnary(Unary *) = 0;
     virtual T visitVariable(Variable *) = 0;
 };
@@ -40,6 +43,7 @@ public:
     virtual std::shared_ptr<void> visitBinary(Binary *) = 0;
     virtual std::shared_ptr<void> visitGrouping(Grouping *) = 0;
     virtual std::shared_ptr<void> visitLiteral(Literal *) = 0;
+    virtual std::shared_ptr<void> visitLogical(Logical *) = 0;
     virtual std::shared_ptr<void> visitUnary(Unary *) = 0;
     virtual std::shared_ptr<void> visitVariable(Variable *) = 0;
 };
@@ -61,6 +65,9 @@ public:
     }
     std::shared_ptr<void> visitLiteral(Literal *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitLiteral(e)));
+    }
+    std::shared_ptr<void> visitLogical(Logical *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitLogical(e)));
     }
     std::shared_ptr<void> visitUnary(Unary *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitUnary(e)));
@@ -87,6 +94,9 @@ public:
     }
     std::shared_ptr<void> visitLiteral(Literal *e) {
         return std::static_pointer_cast<void>(v->visitLiteral(e));
+    }
+    std::shared_ptr<void> visitLogical(Logical *e) {
+        return std::static_pointer_cast<void>(v->visitLogical(e));
     }
     std::shared_ptr<void> visitUnary(Unary *e) {
         return std::static_pointer_cast<void>(v->visitUnary(e));
@@ -116,6 +126,10 @@ public:
     }
     std::shared_ptr<void> visitLiteral(Literal *e) {
         v->visitLiteral(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitLogical(Logical *e) {
+        v->visitLogical(e);
         return nullptr;
     }
     std::shared_ptr<void> visitUnary(Unary *e) {
@@ -183,6 +197,15 @@ struct Literal: public Expr {
 
     std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitLiteral(this); }
     Literal(std::shared_ptr<Value> value): value(value) {}
+};
+
+struct Logical: public Expr {
+    std::shared_ptr<Expr> left;
+    Token op;
+    std::shared_ptr<Expr> right;
+
+    std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitLogical(this); }
+    Logical(std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> right): left(left), op(op), right(right) {}
 };
 
 struct Unary: public Expr {

@@ -51,6 +51,9 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     std::string visitLiteral(Literal *e) {
         return e->value->toString();
     }
+    std::string visitLogical(Logical *e) {
+        return parenthesize(e->op.lexeme, {e->left, e->right});
+    }
     std::string visitUnary(Unary *e) {
         return parenthesize(e->op.lexeme, {e->right});
     }
