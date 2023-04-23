@@ -47,3 +47,14 @@ if(a==1) {
 } else {
     print "a is not 1";
 }
+
+if (true) {
+    print 1;
+} else {
+    print 2;
+}
+
+if(true) print 1;
+else print 2;
+
+
