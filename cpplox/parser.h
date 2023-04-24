@@ -147,6 +147,7 @@ class Parser {
     std::shared_ptr<Stmt> statement() {
         if(match(IF)) { return ifStatement(); }
         if(match(WHILE)) { return whileStatement(); }
+        if(match(FOR)) { return forStatement(); }
         if(match(PRINT)) { return printStatement(); }
         if(match(LEFT_BRACE)) { return blockStatement(); }
         return expressionStatement();
@@ -188,6 +189,51 @@ class Parser {
 
         auto body = statement();
         return std::make_shared<While>(condition, body);
+    }
+    std::shared_ptr<Stmt> forStatement() {
+        consume(LEFT_PAREN, "Expect '(' after for.");
+
+        std::shared_ptr<Stmt> initializer;
+        if(match(SEMICOLON)) {
+            initializer = nullptr;
+        } else if (match(VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer= expressionStatement();
+        }
+
+        std::shared_ptr<Expr> condition = nullptr;
+        if(!check(SEMICOLON)) {
+            condition = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        std::shared_ptr<Expr> increment = nullptr;
+        if(!check(RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(RIGHT_PAREN, "Expect ')' after for condition.");
+
+        auto body = statement();
+        if(increment!=nullptr) {
+            body = std::make_shared<Block>(std::vector<std::shared_ptr<Stmt>>{
+                body,
+                std::make_shared<Expression>(increment),
+            });
+        }
+        if(condition==nullptr) {
+            condition = std::make_shared<Literal>(std::make_shared<BoolValue>(true));
+        }
+        body = std::make_shared<While>(condition, body);
+
+        if (initializer!=nullptr) {
+            body = std::make_shared<Block>(std::vector<std::shared_ptr<Stmt>>{
+                initializer,
+                body,
+            });
+        }
+
+        return body;
     }
 
     // overload for single type
