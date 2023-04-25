@@ -100,7 +100,31 @@ class Parser {
             auto right = unary();
             return std::make_shared<Unary>(op, right);
         }
-        return primary();
+        return call();
+    }
+    std::shared_ptr<Expr> call() {
+        auto expr = primary();
+        while(true) {
+            if(match(LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+        return expr;
+    }
+    std::shared_ptr<Expr> finishCall(std::shared_ptr<Expr> callee) {
+        std::vector<std::shared_ptr<Expr>> argments;
+        if(!check(RIGHT_PAREN)) {
+            do {
+                if(argments.size() >= 255) {
+                    lox->error(peek(), "Can't have more than 255 arguments.");
+                }
+                argments.push_back(expression());
+            } while(match(COMMA));
+        }
+        auto paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+        return std::make_shared<Call>(callee, paren , argments);
     }
     std::shared_ptr<Expr> primary() {
         /* if(match(FALSE)) return std::make_shared<Literal>(previous().literal); */

@@ -6,6 +6,7 @@
 #include "expr.h"
 #include "stmt.h"
 #include "value.h"
+#include "callable.h"
 #include "environment.h"
 #include "error.h"
 #include "utils/string_format.h"
@@ -27,6 +28,7 @@ struct BinOpTraits<std::function<R(A,A)>> {
 // literal to value
 class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisitor<void> {
     // Environment *environment;
+    std::shared_ptr<Environment> globals;
     std::shared_ptr<Environment> environment;
 
     static double add(double l, double r) {
@@ -141,6 +143,23 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         }
         return nullptr;
     }
+    std::shared_ptr<Value> visitCall(Call *e) {
+        auto callee = evaluate(e->callee);
+        std::vector<std::shared_ptr<Value>> arguments;
+        arguments.reserve(e->arguments.size());
+        for(auto &argument: e->arguments) {
+            arguments.push_back(evaluate(argument));
+        }
+        auto function = std::dynamic_pointer_cast<Callable>(callee);
+        if (function == nullptr) {
+            throw RuntimeError(e->paren, "Can only call function and classes.");
+        }
+        if (arguments.size() != function->arity()) {
+            throw RuntimeError(e->paren, string_format("Expected %d arguments but got %d.", function->arity(), arguments.size()));
+        }
+        return function->call(this, arguments);
+        return std::make_shared<NilValue>();
+    }
     std::shared_ptr<Value> visitVariable(Variable *e) {
         return environment->get(e->name);
     }
@@ -202,7 +221,9 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     }
 public:
     Interpreter() {
-        environment = std::make_shared<Environment>();
+        globals = std::make_shared<Environment>();
+        environment = globals;
+        globals->define("clock", std::make_shared<NativeFnClock>());
     }
     std::shared_ptr<Value> evaluate(std::shared_ptr<Expr> expr) {
         /* if(expr==nullptr) { */

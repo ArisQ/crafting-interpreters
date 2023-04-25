@@ -5,7 +5,7 @@
 #include "stmt.h"
 
 class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
-    std::string parenthesize(const std::string &name,std::initializer_list<std::shared_ptr<Expr>> list = {}) {
+    std::string parenthesize(const std::string &name,std::vector<std::shared_ptr<Expr>> list = {}) {
         std::string ret = "(";
         ret += name;
         for (auto expr: list)
@@ -56,6 +56,9 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     }
     std::string visitUnary(Unary *e) {
         return parenthesize(e->op.lexeme, {e->right});
+    }
+    std::string visitCall(Call *e) {
+        return parenthesize(e->callee->accept(this), e->arguments);
     }
     std::string visitVariable(Variable *e) {
         return "<" + e->name.lexeme + ">";

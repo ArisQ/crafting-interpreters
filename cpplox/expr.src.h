@@ -7,6 +7,7 @@
 // GENERATOR_START
 // Assign      : Token name, *Expr value
 // Binary      : *Expr left, Token op, *Expr right
+// Call        : *Expr callee, Token paren, *Expr[] arguments
 // Grouping    : *Expr expression
 // Literal     : *Value value
 // Logical     : *Expr left, Token op, *Expr right
