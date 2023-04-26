@@ -12,6 +12,7 @@
 #include "error.h"
 
 class Interpreter;
+class Environment;
 class Stmt;
 class Function;
 
@@ -55,9 +56,10 @@ class UserFunction: public Callable {
     Token name;
     std::vector<Token> parameters;
     std::vector<std::shared_ptr<Stmt>> body;
+
+    std::shared_ptr<Environment> closure;
 public:
-    UserFunction(Token name, std::vector<Token> parameters, std::vector<std::shared_ptr<Stmt>> body): name(name), parameters(parameters), body(body) {}
-    UserFunction(Function *f);
+    UserFunction(Function *f, std::shared_ptr<Environment> closure);
 
     std::string toString() { return "<fun "+ name.lexeme +">"; }
 

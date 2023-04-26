@@ -125,3 +125,22 @@ fun fib(n) {
     return fib(n-1) + fib(n-2);
 }
 print fib(10);
+
+fun makeCounter() {
+    var i = 0;
+    fun count() {
+        i = i + 1;
+        print i;
+    }
+    return count;
+}
+var cnt1 = makeCounter();
+var cnt2 = makeCounter();
+cnt1();
+cnt2();
+cnt1();
+cnt2();
+cnt1();
+cnt1();
+cnt1();
+cnt2();

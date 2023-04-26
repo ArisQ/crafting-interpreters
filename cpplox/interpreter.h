@@ -198,7 +198,7 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         environment->define(stmt->name.lexeme, v);
     }
     void visitFunction(Function *stmt) {
-        environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(stmt));
+        environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(stmt, environment));
     }
     void visitReturn(Return *stmt) {
         auto v = evaluate(stmt->value);
