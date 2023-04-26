@@ -88,6 +88,9 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
         // return parenthesize("var<" + stmt->name.lexeme + ">", {stmt->initializer});
         return stmtIndent(parenthesize("var", stmt->name, {stmt->initializer}));
     }
+    std::string visitFunction(Function *stmt) {
+        return stmtIndent(parenthesize("fun", stmt->name));
+    }
     std::string visitBlock(Block *stmt) {
         std::vector<std::string> result;
         result.push_back(stmtIndent("("));

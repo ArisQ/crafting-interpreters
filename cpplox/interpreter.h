@@ -27,6 +27,8 @@ struct BinOpTraits<std::function<R(A,A)>> {
 
 // literal to value
 class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisitor<void> {
+    friend class UserFunction;
+
     // Environment *environment;
     std::shared_ptr<Environment> globals;
     std::shared_ptr<Environment> environment;
@@ -157,7 +159,7 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         if (arguments.size() != function->arity()) {
             throw RuntimeError(e->paren, string_format("Expected %d arguments but got %d.", function->arity(), arguments.size()));
         }
-        return function->call(this, arguments);
+        return function->call(this, e->paren, arguments);
         return std::make_shared<NilValue>();
     }
     std::shared_ptr<Value> visitVariable(Variable *e) {
@@ -194,11 +196,17 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         }
         environment->define(stmt->name.lexeme, v);
     }
+    void visitFunction(Function *stmt) {
+        environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(stmt));
+    }
     void visitBlock(Block *stmt) {
+        executeBlock(stmt->statements, std::make_shared<Environment>(environment));
+    }
+    void executeBlock(std::vector<std::shared_ptr<Stmt>> stmts, std::shared_ptr<Environment> env) {
         auto previous = environment;
-        environment = std::make_shared<Environment>(environment);
+        environment = std::make_shared<Environment>(env);
         try {
-            evaluate(stmt->statements);
+            evaluate(stmts);
         } catch(...) {
             // restore environment for exception
             environment = previous;
@@ -223,7 +231,8 @@ public:
     Interpreter() {
         globals = std::make_shared<Environment>();
         environment = globals;
-        globals->define("clock", std::make_shared<NativeFnClock>());
+        globals->define("clock", std::make_shared<NativeClock>());
+        globals->define("read", std::make_shared<NativeRead>());
     }
     std::shared_ptr<Value> evaluate(std::shared_ptr<Expr> expr) {
         /* if(expr==nullptr) { */

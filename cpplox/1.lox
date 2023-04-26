@@ -89,5 +89,32 @@ while(x>0) {
 for(var i=0;i<10;i=i+1) {
     print i;
 }
-print clock();
+var start = clock();
+var sum = 0;
+for(var i=0;i<10000;i=i+1) {
+    sum = sum + i;
+}
+var end = clock();
+print clock;
+print sum;
+print start;
+print end;
+print end - start;
+print read("NOTES.md");
+// var x = "print";
+// x();
 // c(1, 2, 3);
+
+
+fun count(n) {
+    if(n>1) count(n-1);
+    print n;
+}
+count(10);
+
+fun hello(name) {
+    if (name == "") print "Hello, world!";
+    else print "Hello, " + name;
+}
+hello("John");
+hello("");

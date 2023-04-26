@@ -149,9 +149,8 @@ class Parser {
     // declaration
     std::shared_ptr<Stmt> declaration() {
         try {
-            if(match(VAR)) {
-                return varDeclaration();
-            }
+            if(match(FUN)) return function("function");
+            if(match(VAR)) return varDeclaration();
             return statement();
         } catch (const ParseError &e) {
             synchronize();
@@ -166,6 +165,24 @@ class Parser {
         }
         consume(SEMICOLON, "Exepct ';' after variable declaration.");
         return std::make_shared<Var>(name, initializer);
+    }
+    std::shared_ptr<Stmt> function(const std::string &kind) {
+        Token name = consume(IDENTIFIER, "Expect "+ kind + " name.");
+        consume(LEFT_PAREN, "Expect '(' after "+ kind + " name.");
+        std::vector<Token> parameters;
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if(parameters.size()>=255) {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+                parameters.push_back(consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        auto body = block();
+        return std::make_shared<Function>(name, parameters, body);
     }
     // statements
     std::shared_ptr<Stmt> statement() {
@@ -187,12 +204,15 @@ class Parser {
         return std::make_shared<Expression>(expr);
     }
     std::shared_ptr<Stmt> blockStatement() {
+        return std::make_shared<Block>(block());
+    }
+    std::vector<std::shared_ptr<Stmt>> block() {
         std::vector<std::shared_ptr<Stmt>> stmts;
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
             stmts.push_back(declaration());
         }
         consume(RIGHT_BRACE, "Expect '}' after block;");
-        return std::make_shared<Block>(stmts);
+        return stmts;
     }
     std::shared_ptr<Stmt> ifStatement() {
         consume(LEFT_PAREN, "Expect '(' after if.");
