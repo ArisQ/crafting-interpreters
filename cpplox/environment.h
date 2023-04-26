@@ -36,6 +36,36 @@ public:
         }
         throw RuntimeError(name, "Undefine variable '" + n + "'.");
     }
+    std::shared_ptr<Value> getAt(int distance, Token name) {
+        return ancestor(distance).values.at(name.lexeme);
+    }
+    void assignAt(int distance,Token name, std::shared_ptr<Value> v) {
+        ancestor(distance).values[name.lexeme] = v;
+    }
+    Environment &ancestor(int distance) {
+        if (distance==0) {
+            return *this;
+        }
+        auto env = this->enclosing;
+        for(int i=1;i<distance;i++) {
+            env = env->enclosing;
+        }
+        return *env;
+    }
+
+    static void dump(std::shared_ptr<Environment> env) {
+        int d = 0;
+        std::cout << "==========ENV==========" << std::endl;
+        while (env != nullptr) {
+            std::cout << d << "----------" << std::endl;
+            for (const auto &k : env->values) {
+                std::cout << k.first << ": " << k.second->toString() << std::endl;
+            }
+            env = env->enclosing;
+            d++;
+        }
+        std::cout << "=======================" << std::endl;
+    }
 };
 
 #endif // _ENVIRONMENT_H_

@@ -11,7 +11,7 @@ std::shared_ptr<Value> UserFunction::call(Interpreter *interpreter, Token token,
         environment->define(parameters[i].lexeme, arguments[i]);
     }
     try {
-        interpreter->executeBlock(body, std::make_shared<Environment>(environment));
+        interpreter->executeBlock(body, environment);
     } catch (const ReturnException &r) {
         return r.val;
     }

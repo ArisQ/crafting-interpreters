@@ -29,6 +29,7 @@ struct BinOpTraits<std::function<R(A,A)>> {
 // literal to value
 class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisitor<void> {
     friend class UserFunction;
+    friend class Resolver;
 
     // Environment *environment;
     std::shared_ptr<Environment> globals;
@@ -112,7 +113,12 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     }
     std::shared_ptr<Value> visitAssign(Assign *e) {
         auto v = evaluate(e->value);
-        environment->assign(e->name, v);
+        if (locals.contains(e)) {
+            auto distance = locals[e];
+            environment->assignAt(distance, e->name, v);
+        } else {
+            globals->assign(e->name, v);
+        }
         return v;
     }
     std::shared_ptr<Value> visitGrouping(Grouping *e) {
@@ -164,7 +170,7 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         return std::make_shared<NilValue>();
     }
     std::shared_ptr<Value> visitVariable(Variable *e) {
-        return environment->get(e->name);
+        return lookUpVariable(e->name, e);
     }
 
     bool isTruthy(std::shared_ptr<Value> v) {
@@ -205,11 +211,11 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         throw ReturnException(v);
     }
     void visitBlock(Block *stmt) {
-        executeBlock(stmt->statements, std::make_shared<Environment>(environment));
+        executeBlock(stmt->statements, std::make_shared<Environment>(environment)); // execute block in new environment
     }
     void executeBlock(std::vector<std::shared_ptr<Stmt>> stmts, std::shared_ptr<Environment> env) {
         auto previous = environment;
-        environment = std::make_shared<Environment>(env);
+        environment = env;
         try {
             evaluate(stmts);
         } catch(...) {
@@ -230,6 +236,24 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     void visitWhile(While *stmt) {
         while (isTruthy(evaluate(stmt->condition))) {
             evaluate(stmt->body);
+        }
+    }
+
+    std::map<const Expr*, int> locals;
+    void resolve(const Expr * const e, int depth) {
+        locals[e] = depth;
+    }
+    std::shared_ptr<Value> lookUpVariable(Token name, const Expr * const expr) {
+        if (!locals.contains(expr)) {
+            return globals->get(name);
+        }
+        auto distance = locals[expr];
+        try{
+            return environment->getAt(distance, name);
+        } catch(...) {
+            std::cout << "error looking up '" << name << "' " << expr <<" @ distance " << distance << std::endl;
+            Environment::dump(environment);
+            throw;
         }
     }
 public:

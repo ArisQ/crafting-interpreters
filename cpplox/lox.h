@@ -10,6 +10,7 @@ class Lox
     friend class Scanner;
     friend class Parser;
     friend class Interpreter;
+    friend class Resolver;
 
     bool hasError = false;
     void report(int line, std::string level, std::string where, std::string message);

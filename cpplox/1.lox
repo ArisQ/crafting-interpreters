@@ -145,6 +145,8 @@ cnt1();
 cnt1();
 cnt2();
 
+// return "hello";
+
 var a = "outer";
 {
     fun showA() {

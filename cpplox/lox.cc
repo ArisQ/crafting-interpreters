@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "interpreter.h"
+#include "resolver.h"
 #include "lox.h"
 #include "parser.h"
 #include "scanner.h"
@@ -61,6 +62,10 @@ void Lox::run(const string &s)
         return;
     }
     std::cout<< AstPrinter().print(stmts)<<std::endl;
+
+    Resolver resolver(this, &interpreter);
+    resolver.resolve(stmts);
+    if(hasError) return;
 
     try {
         interpreter.evaluate(stmts);
