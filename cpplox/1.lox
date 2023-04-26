@@ -144,3 +144,13 @@ cnt1();
 cnt1();
 cnt1();
 cnt2();
+
+var a = "outer";
+{
+    fun showA() {
+        print a;
+    }
+    showA();
+    var a = "inner";
+    showA();
+}

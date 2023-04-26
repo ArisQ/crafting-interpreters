@@ -10,7 +10,13 @@
         "filesystem": "cpp",
         "system_error": "cpp",
         "__functional_03": "cpp",
-        "functional": "cpp"
+        "functional": "cpp",
+        "variant": "cpp",
+        "chrono": "cpp",
+        "fstream": "cpp",
+        "locale": "cpp",
+        "sstream": "cpp",
+        "stdexcept": "cpp"
     },
     "debug.console.collapseIdenticalLines": false,
 }
