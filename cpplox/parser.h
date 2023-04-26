@@ -189,9 +189,19 @@ class Parser {
         if(match(IF)) { return ifStatement(); }
         if(match(WHILE)) { return whileStatement(); }
         if(match(FOR)) { return forStatement(); }
+        if(match(RETURN)) { return returnStatement(); }
         if(match(PRINT)) { return printStatement(); }
         if(match(LEFT_BRACE)) { return blockStatement(); }
         return expressionStatement();
+    }
+    std::shared_ptr<Stmt> returnStatement() {
+        Token keyword = previous();
+        std::shared_ptr<Expr> value = nullptr;
+        if(!check(SEMICOLON)) {
+            value = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after return value.");
+        return std::make_shared<Return>(keyword, value);
     }
     std::shared_ptr<Stmt> printStatement() {
         auto right = expression();

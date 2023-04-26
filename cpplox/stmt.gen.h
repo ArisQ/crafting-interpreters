@@ -10,6 +10,7 @@
 // Block      : *Stmt[] statements
 // Expression : *Expr expression
 // Function   : Token name, Token[] params, *Stmt[] body
+// Return     : Token keyword, *Expr value
 // If         : *Expr condition, *Stmt thenBranch, *Stmt elseBranch
 // Print      : *Expr expression
 // Var        : Token name, *Expr initializer
@@ -19,6 +20,7 @@
 class Block;
 class Expression;
 class Function;
+class Return;
 class If;
 class Print;
 class Var;
@@ -31,6 +33,7 @@ public:
     virtual T visitBlock(Block *) = 0;
     virtual T visitExpression(Expression *) = 0;
     virtual T visitFunction(Function *) = 0;
+    virtual T visitReturn(Return *) = 0;
     virtual T visitIf(If *) = 0;
     virtual T visitPrint(Print *) = 0;
     virtual T visitVar(Var *) = 0;
@@ -43,6 +46,7 @@ public:
     virtual std::shared_ptr<void> visitBlock(Block *) = 0;
     virtual std::shared_ptr<void> visitExpression(Expression *) = 0;
     virtual std::shared_ptr<void> visitFunction(Function *) = 0;
+    virtual std::shared_ptr<void> visitReturn(Return *) = 0;
     virtual std::shared_ptr<void> visitIf(If *) = 0;
     virtual std::shared_ptr<void> visitPrint(Print *) = 0;
     virtual std::shared_ptr<void> visitVar(Var *) = 0;
@@ -63,6 +67,9 @@ public:
     }
     std::shared_ptr<void> visitFunction(Function *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitFunction(e)));
+    }
+    std::shared_ptr<void> visitReturn(Return *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitReturn(e)));
     }
     std::shared_ptr<void> visitIf(If *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitIf(e)));
@@ -92,6 +99,9 @@ public:
     }
     std::shared_ptr<void> visitFunction(Function *e) {
         return std::static_pointer_cast<void>(v->visitFunction(e));
+    }
+    std::shared_ptr<void> visitReturn(Return *e) {
+        return std::static_pointer_cast<void>(v->visitReturn(e));
     }
     std::shared_ptr<void> visitIf(If *e) {
         return std::static_pointer_cast<void>(v->visitIf(e));
@@ -123,6 +133,10 @@ public:
     }
     std::shared_ptr<void> visitFunction(Function *e) {
         v->visitFunction(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitReturn(Return *e) {
+        v->visitReturn(e);
         return nullptr;
     }
     std::shared_ptr<void> visitIf(If *e) {
@@ -190,6 +204,14 @@ struct Function: public Stmt {
 
     std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitFunction(this); }
     Function(Token name, std::vector<Token> params, std::vector<std::shared_ptr<Stmt>> body): name(name), params(params), body(body) {}
+};
+
+struct Return: public Stmt {
+    Token keyword;
+    std::shared_ptr<Expr> value;
+
+    std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitReturn(this); }
+    Return(Token keyword, std::shared_ptr<Expr> value): keyword(keyword), value(value) {}
 };
 
 struct If: public Stmt {

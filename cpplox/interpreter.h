@@ -7,6 +7,7 @@
 #include "stmt.h"
 #include "value.h"
 #include "callable.h"
+#include "return.h"
 #include "environment.h"
 #include "error.h"
 #include "utils/string_format.h"
@@ -198,6 +199,10 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     }
     void visitFunction(Function *stmt) {
         environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(stmt));
+    }
+    void visitReturn(Return *stmt) {
+        auto v = evaluate(stmt->value);
+        throw ReturnException(v);
     }
     void visitBlock(Block *stmt) {
         executeBlock(stmt->statements, std::make_shared<Environment>(environment));

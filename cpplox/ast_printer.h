@@ -91,6 +91,9 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     std::string visitFunction(Function *stmt) {
         return stmtIndent(parenthesize("fun", stmt->name));
     }
+    std::string visitReturn(Return *stmt) {
+        return stmtIndent(parenthesize("return", stmt->keyword, {stmt->value}));
+    }
     std::string visitBlock(Block *stmt) {
         std::vector<std::string> result;
         result.push_back(stmtIndent("("));
