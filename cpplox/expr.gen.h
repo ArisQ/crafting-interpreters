@@ -9,6 +9,8 @@
 // Assign      : Token name, *Expr value
 // Binary      : *Expr left, Token op, *Expr right
 // Call        : *Expr callee, Token paren, *Expr[] arguments
+// Get         : *Expr object, Token name
+// Set         : *Expr object, Token name, *Expr value
 // Grouping    : *Expr expression
 // Literal     : *Value value
 // Logical     : *Expr left, Token op, *Expr right
@@ -19,6 +21,8 @@
 class Assign;
 class Binary;
 class Call;
+class Get;
+class Set;
 class Grouping;
 class Literal;
 class Logical;
@@ -32,6 +36,8 @@ public:
     virtual T visitAssign(Assign *) = 0;
     virtual T visitBinary(Binary *) = 0;
     virtual T visitCall(Call *) = 0;
+    virtual T visitGet(Get *) = 0;
+    virtual T visitSet(Set *) = 0;
     virtual T visitGrouping(Grouping *) = 0;
     virtual T visitLiteral(Literal *) = 0;
     virtual T visitLogical(Logical *) = 0;
@@ -45,6 +51,8 @@ public:
     virtual std::shared_ptr<void> visitAssign(Assign *) = 0;
     virtual std::shared_ptr<void> visitBinary(Binary *) = 0;
     virtual std::shared_ptr<void> visitCall(Call *) = 0;
+    virtual std::shared_ptr<void> visitGet(Get *) = 0;
+    virtual std::shared_ptr<void> visitSet(Set *) = 0;
     virtual std::shared_ptr<void> visitGrouping(Grouping *) = 0;
     virtual std::shared_ptr<void> visitLiteral(Literal *) = 0;
     virtual std::shared_ptr<void> visitLogical(Logical *) = 0;
@@ -66,6 +74,12 @@ public:
     }
     std::shared_ptr<void> visitCall(Call *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitCall(e)));
+    }
+    std::shared_ptr<void> visitGet(Get *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitGet(e)));
+    }
+    std::shared_ptr<void> visitSet(Set *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitSet(e)));
     }
     std::shared_ptr<void> visitGrouping(Grouping *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitGrouping(e)));
@@ -98,6 +112,12 @@ public:
     }
     std::shared_ptr<void> visitCall(Call *e) {
         return std::static_pointer_cast<void>(v->visitCall(e));
+    }
+    std::shared_ptr<void> visitGet(Get *e) {
+        return std::static_pointer_cast<void>(v->visitGet(e));
+    }
+    std::shared_ptr<void> visitSet(Set *e) {
+        return std::static_pointer_cast<void>(v->visitSet(e));
     }
     std::shared_ptr<void> visitGrouping(Grouping *e) {
         return std::static_pointer_cast<void>(v->visitGrouping(e));
@@ -132,6 +152,14 @@ public:
     }
     std::shared_ptr<void> visitCall(Call *e) {
         v->visitCall(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitGet(Get *e) {
+        v->visitGet(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitSet(Set *e) {
+        v->visitSet(e);
         return nullptr;
     }
     std::shared_ptr<void> visitGrouping(Grouping *e) {
@@ -206,6 +234,23 @@ struct Call: public Expr {
 
     std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitCall(this); }
     Call(std::shared_ptr<Expr> callee, Token paren, std::vector<std::shared_ptr<Expr>> arguments): callee(callee), paren(paren), arguments(arguments) {}
+};
+
+struct Get: public Expr {
+    std::shared_ptr<Expr> object;
+    Token name;
+
+    std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitGet(this); }
+    Get(std::shared_ptr<Expr> object, Token name): object(object), name(name) {}
+};
+
+struct Set: public Expr {
+    std::shared_ptr<Expr> object;
+    Token name;
+    std::shared_ptr<Expr> value;
+
+    std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitSet(this); }
+    Set(std::shared_ptr<Expr> object, Token name, std::shared_ptr<Expr> value): object(object), name(name), value(value) {}
 };
 
 struct Grouping: public Expr {

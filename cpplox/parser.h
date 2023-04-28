@@ -32,9 +32,14 @@ class Parser {
         auto expr = logicalOr();
         if (match(EQUAL)) {
             auto equal = previous();
+            auto value = assignment();
             auto var = std::dynamic_pointer_cast<Variable>(expr); // 解析到了Variable，最后返回的AST是Assign
             if (var!=nullptr) {
-                return std::make_shared<Assign>(var->name, equality());
+                return std::make_shared<Assign>(var->name, value);
+            }
+            auto get = std::dynamic_pointer_cast<Get>(expr);
+            if (get!=nullptr) {
+                return std::make_shared<Set>(get->object, get->name, value);
             }
             throw RuntimeError(equal, "Invalid assignment target");
         }
@@ -107,6 +112,9 @@ class Parser {
         while(true) {
             if(match(LEFT_PAREN)) {
                 expr = finishCall(expr);
+            } else if (match(DOT)){
+                Token name = consume(IDENTIFIER, "Expect property name after '.'.");
+                expr = std::make_shared<Get>(expr, name);
             } else {
                 break;
             }
@@ -149,6 +157,7 @@ class Parser {
     // declaration
     std::shared_ptr<Stmt> declaration() {
         try {
+            if(match(CLASS)) return classDeclaration();
             if(match(FUN)) return function("function");
             if(match(VAR)) return varDeclaration();
             return statement();
@@ -166,7 +175,7 @@ class Parser {
         consume(SEMICOLON, "Exepct ';' after variable declaration.");
         return std::make_shared<Var>(name, initializer);
     }
-    std::shared_ptr<Stmt> function(const std::string &kind) {
+    std::shared_ptr<Function> function(const std::string &kind) {
         Token name = consume(IDENTIFIER, "Expect "+ kind + " name.");
         consume(LEFT_PAREN, "Expect '(' after "+ kind + " name.");
         std::vector<Token> parameters;
@@ -183,6 +192,16 @@ class Parser {
         consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
         auto body = block();
         return std::make_shared<Function>(name, parameters, body);
+    }
+    std::shared_ptr<Stmt> classDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect class name.");
+        consume(LEFT_BRACE, "Expect '(' before class body.");
+        std::vector<std::shared_ptr<Function>> methods;
+        while(!check(RIGHT_BRACE) && !isAtEnd()) {
+            methods.push_back(function("method"));
+        }
+        consume(RIGHT_BRACE, "Expect ')' after class body.");
+        return std::make_shared<Class>(name, methods);
     }
     // statements
     std::shared_ptr<Stmt> statement() {

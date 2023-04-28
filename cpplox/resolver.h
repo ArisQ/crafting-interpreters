@@ -11,6 +11,7 @@
 enum FunctionType {
     NONE,
     FUNCITON,
+    METHOD,
 };
 
 class Resolver: public ExprVisitor<void>, public StmtVisitor<void> {
@@ -44,21 +45,20 @@ class Resolver: public ExprVisitor<void>, public StmtVisitor<void> {
         auto size = scopes.size();
         for(int i=size-1; i>=0; --i) {
             if(scopes[i].contains(name.lexeme)) {
-        std::cout<<"resolve "<< e <<" " << name.lexeme << " " << size-1-i <<std::endl;
                 interpreter->resolve(e, size - 1 - i);
                 return;
             }
         }
     }
-    void resolveFunction(const Function * const fn, FunctionType type) {
+    void resolveFunction(const Function &fn, FunctionType type) {
         auto enclosingFunction = currentFunction;
         currentFunction = type;
         beginScope();
-        for(auto param: fn->params) {
+        for(auto param: fn.params) {
             declare(param);
             define(param);
         }
-        resolve(fn->body);
+        resolve(fn.body);
         endScope();
         currentFunction = enclosingFunction;
     }
@@ -79,6 +79,13 @@ public:
         for(auto &arg: e->arguments) {
             resolve(arg);
         }
+    }
+    void visitGet(Get *e) {
+        resolve(e->object);
+    }
+    void visitSet(Set *e) {
+        resolve(e->object);
+        resolve(e->value);
     }
     void visitGrouping(Grouping *e) {
         resolve(e->expression);
@@ -110,10 +117,17 @@ public:
     void visitExpression(Expression *stmt) {
         resolve(stmt->expression);
     }
+    void visitClass(Class *stmt) {
+        declare(stmt->name);
+        for(auto &m: stmt->methods) {
+            resolveFunction(*m, METHOD);
+        }
+        define(stmt->name);
+    }
     void visitFunction(Function *stmt) {
         declare(stmt->name);
         define(stmt->name);
-        resolveFunction(stmt, FUNCITON);
+        resolveFunction(*stmt, FUNCITON);
     }
     void visitReturn(Return *stmt) {
         if(currentFunction==NONE) {

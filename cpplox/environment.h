@@ -11,11 +11,11 @@ class Environment {
     std::shared_ptr<Environment> enclosing;
 public:
     Environment(const Environment&) = delete;
-    Environment(std::shared_ptr<Environment> enclosing=nullptr): enclosing(enclosing) { }
-    void define(std::string name, std::shared_ptr<Value> v) {
+    Environment(const std::shared_ptr<Environment> &enclosing=nullptr): enclosing(enclosing) { }
+    void define(const std::string &name, const std::shared_ptr<Value> &v) {
         values[name] = v;
     }
-    void assign(Token name, std::shared_ptr<Value> v) {
+    void assign(const Token &name, const std::shared_ptr<Value> &v) {
         auto n = name.lexeme;
         if (values.contains(n)) {
             values[n] = v;
@@ -26,7 +26,7 @@ public:
         }
         throw RuntimeError(name, "Undefine variable '" + n + "'.");
     }
-    std::shared_ptr<Value> get(Token name) {
+    std::shared_ptr<Value> get(const Token &name) {
         auto n = name.lexeme;
         if (values.contains(n)) {
             return values.at(n);
@@ -36,10 +36,10 @@ public:
         }
         throw RuntimeError(name, "Undefine variable '" + n + "'.");
     }
-    std::shared_ptr<Value> getAt(int distance, Token name) {
+    std::shared_ptr<Value> getAt(int distance, const Token &name) {
         return ancestor(distance).values.at(name.lexeme);
     }
-    void assignAt(int distance,Token name, std::shared_ptr<Value> v) {
+    void assignAt(int distance, const Token &name, const std::shared_ptr<Value> &v) {
         ancestor(distance).values[name.lexeme] = v;
     }
     Environment &ancestor(int distance) {
@@ -53,7 +53,7 @@ public:
         return *env;
     }
 
-    static void dump(std::shared_ptr<Environment> env) {
+    static void dump(std::shared_ptr<Environment> &env) {
         int d = 0;
         std::cout << "==========ENV==========" << std::endl;
         while (env != nullptr) {

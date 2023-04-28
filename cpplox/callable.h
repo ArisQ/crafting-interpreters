@@ -15,6 +15,7 @@ class Interpreter;
 class Environment;
 class Stmt;
 class Function;
+class Class;
 
 class Callable: public Value {
 public:
@@ -59,7 +60,7 @@ class UserFunction: public Callable {
 
     std::shared_ptr<Environment> closure;
 public:
-    UserFunction(Function *f, std::shared_ptr<Environment> closure);
+    UserFunction(const Function &f, std::shared_ptr<Environment> closure);
 
     std::string toString() { return "<fun "+ name.lexeme +">"; }
 
@@ -67,4 +68,56 @@ public:
 
     std::shared_ptr<Value> call(Interpreter *interpreter, Token token, std::vector<std::shared_ptr<Value>> arguments);
 };
+
+class UserClassInstance;
+class UserClass: public Callable {
+    friend UserClassInstance;
+
+    Token name;
+    std::map<std::string, std::shared_ptr<UserFunction>> methods;
+public:
+    UserClass(Class *k, std::map<std::string, std::shared_ptr<UserFunction>> methods);
+
+    std::string toString() { return "<class "+ name.lexeme +">"; }
+
+    size_t arity() { return 0; }
+
+    std::shared_ptr<Value> call(Interpreter *interpreter, Token token, std::vector<std::shared_ptr<Value>> arguments);
+
+    std::shared_ptr<UserFunction> findMethod(const std::string &name) {
+        if(methods.contains(name))
+            return methods.at(name);
+        return nullptr;
+    }
+};
+
+class UserClassInstance: public Value {
+    UserClass *klass;
+
+    std::map<std::string, std::shared_ptr<Value>> fields;
+public:
+    // TODO 指针问题
+    // Class定义过生命周期后，Instance的引用会有问题
+    UserClassInstance(UserClass *klass):klass(klass) {}
+
+    std::string toString() { return "<class "+ klass->name.lexeme +" instance>"; }
+    bool operator==(std::shared_ptr<Value>) { return false; } // TODO
+
+    std::shared_ptr<Value> get(const Token &name) {
+        auto lexeme = name.lexeme;
+        if (fields.contains(lexeme)) {
+            return fields.at(lexeme);
+        }
+
+        auto method = klass->findMethod(name.lexeme);
+        if(method!=nullptr) return method;
+
+        throw RuntimeError(name, "Undefined property '" + lexeme +"'.");
+        return std::make_shared<NilValue>();
+    }
+    void set(Token name, const std::shared_ptr<Value> &value) {
+        fields[name.lexeme] = value;
+    }
+};
+
 #endif // _CALLABLE_H_

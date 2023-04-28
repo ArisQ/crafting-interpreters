@@ -6,7 +6,7 @@
 /* #include <iostream> */
 #include "utils/string_format.h"
 
-class Value{ // literal lexeme/value
+class Value { // literal lexeme/value
 public:
     virtual std::string toString() = 0;
     virtual bool operator==(std::shared_ptr<Value>) = 0;

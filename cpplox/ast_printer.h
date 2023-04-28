@@ -10,7 +10,7 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
         ret += name;
         for (auto expr: list)
         {
-            ret += ", ";
+            ret += " ";
             std::string v = "nullptr";
             if(expr!=nullptr) {
                 v = expr->accept(this);
@@ -24,11 +24,11 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     std::string parenthesize(const std::string &name, const Token &token,std::initializer_list<std::shared_ptr<Expr>> list = {}) {
         std::string ret = "(";
         ret += name;
-        ret += ", ";
+        ret += " ";
         ret += token.lexeme;
         for (auto expr: list)
         {
-            ret += ", ";
+            ret += " ";
             std::string v = "nullptr";
             if(expr!=nullptr) {
                 v = expr->accept(this);
@@ -60,6 +60,12 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     std::string visitCall(Call *e) {
         return parenthesize(e->callee->accept(this), e->arguments);
     }
+    std::string visitGet(Get *e) {
+        return parenthesize("get", e->name, {e->object});
+    }
+    std::string visitSet(Set *e) {
+        return parenthesize("set", e->name, {e->object, e->value});
+    }
     std::string visitVariable(Variable *e) {
         return "<" + e->name.lexeme + ">";
     }
@@ -88,43 +94,56 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
         // return parenthesize("var<" + stmt->name.lexeme + ">", {stmt->initializer});
         return stmtIndent(parenthesize("var", stmt->name, {stmt->initializer}));
     }
-    std::string visitFunction(Function *stmt) {
-        return stmtIndent(parenthesize("fun", stmt->name));
-    }
-    std::string visitReturn(Return *stmt) {
-        return stmtIndent(parenthesize("return", stmt->keyword, {stmt->value}));
-    }
-    std::string visitBlock(Block *stmt) {
-        std::vector<std::string> result;
-        result.push_back(stmtIndent("("));
+    std::string visitClass(Class *stmt) {
+        std::string ret = stmtIndent("(class " + stmt->name.lexeme);
         auto oldIndent = incrIndent();
-        for(auto &s: visit(stmt->statements)) {
-            result.push_back(s);
+        for(const auto &r: stmt->methods) {
+            ret += r->accept(this);
         }
         restoreIndent(oldIndent);
-        result.push_back(stmtIndent(")"));
-        std::string ret;
-        for(const auto &r: result) {
-            ret += r;
+        ret += stmtIndent(")");
+        return ret;
+    }
+    std::string visitFunction(Function *stmt) {
+        std::string ret = "(fun " + stmt->name.lexeme;
+        for (auto &p: stmt->params) {
+            ret += " " + p.lexeme;
         }
+        ret = stmtIndent(ret);
+        auto oldIndent = incrIndent();
+        ret += block(stmt->body);
+        restoreIndent(oldIndent);
+        ret += stmtIndent(")");
+        return ret;
+    }
+    std::string visitReturn(Return *stmt) {
+        return stmtIndent(parenthesize(stmt->keyword.lexeme, {stmt->value}));
+    }
+    std::string visitBlock(Block *stmt) {
+        return block(stmt->statements);
+    }
+    std::string block(std::vector<std::shared_ptr<Stmt>> stmts) {
+        std::string ret = stmtIndent("(");
+        auto oldIndent = incrIndent();
+        for(auto &s: stmts) {
+            ret += s->accept(this);
+        }
+        restoreIndent(oldIndent);
+        ret += stmtIndent(")");
         return ret;
     }
     std::string visitIf(If *stmt) {
-        std::vector<std::string> result;
-        result.push_back(stmtIndent("("));
+        std::string ret;
+        ret += stmtIndent("(");
         auto oldIndent = incrIndent();
-        result.push_back(stmtIndent( "if " + stmt->condition->accept(this)));
-        result.push_back(stmt->thenBranch->accept(this));
+        ret += stmtIndent( "if " + stmt->condition->accept(this));
+        ret += stmt->thenBranch->accept(this);
         if(stmt->elseBranch != nullptr) {
-            result.push_back(stmtIndent("else"));
-            result.push_back(stmt->elseBranch->accept(this));
+            ret += stmtIndent("else");
+            ret += stmt->elseBranch->accept(this);
         }
         restoreIndent(oldIndent);
-        result.push_back(stmtIndent(")"));
-        std::string ret;
-        for(const auto &r: result) {
-            ret += r;
-        }
+        ret += stmtIndent(")");
         return ret;
     }
     std::string visitWhile(While *stmt) {

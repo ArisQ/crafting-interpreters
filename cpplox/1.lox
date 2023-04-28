@@ -77,6 +77,12 @@ while(x>0) {
     x = x - 1;
 }
 
+a = b = x =0;
+print "assignment to assignment";
+print a;
+print b;
+print x;
+
 a = 1;
 b = 1;
 x = 20;
@@ -126,16 +132,16 @@ fun fib(n) {
 }
 print fib(10);
 
-fun makeCounter() {
+fun makeCounter(name) {
     var i = 0;
     fun count() {
         i = i + 1;
-        print i;
+        print name + " " + i;
     }
     return count;
 }
-var cnt1 = makeCounter();
-var cnt2 = makeCounter();
+var cnt1 = makeCounter("cnt1");
+var cnt2 = makeCounter("cnt2");
 cnt1();
 cnt2();
 cnt1();
@@ -156,3 +162,28 @@ var a = "outer";
     var a = "inner";
     showA();
 }
+
+print "str with " + nil;
+
+class car {
+    str() {
+        return "car";
+    }
+}
+var c = car();
+print car;
+print c;
+print c.str;
+print c.str();
+c.str = "x";
+print c.str;
+// print c."y";
+
+var testClassInstance;
+{
+    class testClass {
+    }
+    print testClass();
+    testClassInstance = testClass();
+}
+print testClassInstance;

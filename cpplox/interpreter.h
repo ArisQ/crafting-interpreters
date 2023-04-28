@@ -88,9 +88,14 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
                     if(auto sum = evalBin(add, left, right)){ // != nullptr
                         return sum;
                     }
-                    // auto err = std::make_shared<RuntimeError>(RuntimeError::NumberStringOperand(e->op));
-                    // return evalBin(std::function([](std::string l, std::string r)->std::string { return l + r;}), left,right, err);
-                    return evalBin(std::function([](std::string l, std::string r)->std::string { return l + r;}), left,right, number_err);
+                    if(auto sum = evalBin(std::function([](std::string l, std::string r)->std::string { return l + r;}), left, right)){ // != nullptr
+                        return sum;
+                    }
+                    auto l = std::dynamic_pointer_cast<StringValue>(left);
+                    if(l) {
+                        return std::make_shared<StringValue>(l->v + right->toString());
+                    }
+                    throw RuntimeError::NumberStringOperand(e->op);
                     // return evalBin(std::operator+<std::string>, left,right);
             }
             case GREATER:
@@ -169,6 +174,24 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         return function->call(this, e->paren, arguments);
         return std::make_shared<NilValue>();
     }
+    std::shared_ptr<Value> visitGet(Get *e) {
+        auto object = evaluate(e->object);
+        auto instance = std::dynamic_pointer_cast<UserClassInstance>(object);
+        if (instance==nullptr) {
+            throw RuntimeError(e->name,"Only instance have properties.");
+        }
+        return instance->get(e->name);
+    }
+    std::shared_ptr<Value> visitSet(Set *e) {
+        auto object = evaluate(e->object);
+        auto instance = std::dynamic_pointer_cast<UserClassInstance>(object);
+        if (instance==nullptr) {
+            throw RuntimeError(e->name,"Only instance have fields.");
+        }
+        auto value = evaluate(e->value);
+        instance->set(e->name, value);
+        return value;
+    }
     std::shared_ptr<Value> visitVariable(Variable *e) {
         return lookUpVariable(e->name, e);
     }
@@ -203,8 +226,28 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         }
         environment->define(stmt->name.lexeme, v);
     }
+    void visitClass(Class *stmt) {
+        environment->define(stmt->name.lexeme, std::make_shared<NilValue>());
+        std::map<std::string, std::shared_ptr<UserFunction>> methods;
+        for(const auto &method: stmt->methods) {
+            methods[method->name.lexeme] = std::make_shared<UserFunction>(*method, environment); // 重复引用environment
+        }
+        auto klass = std::make_shared<UserClass>(stmt, methods);
+        environment->assign(stmt->name, klass);
+    }
     void visitFunction(Function *stmt) {
-        environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(stmt, environment));
+        /*
+            TODO
+            此处会导致environment和UserFunction之间的shared_ptr循环引用，
+            切不能使用week_ptr打破循环，因为存在两种引用方式
+            environment->function               (局部函数)
+            globals/outer->function->enviroment (闭包函数)
+            会导致没有引用时，无法释放
+            function<->enviroment (循环)
+
+            class同理
+        */
+        environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(*stmt, environment));
     }
     void visitReturn(Return *stmt) {
         auto v = evaluate(stmt->value);
