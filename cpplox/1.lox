@@ -240,3 +240,34 @@ print testInherit("child2").speekNew();
 //         super.cook();
 //     }
 // }
+
+var PI = 3.1415926;
+class shape {
+    area() {
+        return 0;
+    }
+}
+class circle < shape {
+    init(radius) {
+        this.radius = radius;
+    }
+    area() {
+        return PI * this.radius * this.radius;
+    }
+}
+class rectangle < shape {
+    init(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    area() {
+        return this.x * this.y;
+    }
+}
+print shape().area();
+print circle(1.5).area();
+print rectangle(2, 3).area();
+var s = shape();
+print s.area();
+s = rectangle(5, 7);
+print s.area();
