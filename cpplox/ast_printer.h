@@ -48,6 +48,9 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     std::string visitGrouping(Grouping *e) {
         return parenthesize("group", {e->expression});
     }
+    std::string visitThis(This *e) {
+        return e->keyword.lexeme;
+    }
     std::string visitLiteral(Literal *e) {
         return e->value->toString();
     }

@@ -18,6 +18,12 @@ std::shared_ptr<Value> UserFunction::call(Interpreter *interpreter, Token token,
     return std::make_shared<NilValue>();
 }
 
+std::shared_ptr<UserFunction> UserFunction::bind(const std::shared_ptr<UserClassInstance> &instance) {
+    auto env = std::make_shared<Environment>(closure);
+    env->define("this", instance);
+    return std::make_shared<UserFunction>(name, parameters, body, env);
+}
+
 UserClass::UserClass(Class *k, std::map<std::string, std::shared_ptr<UserFunction>> methods): name(k->name), methods(methods) {}
 
 std::shared_ptr<Value> UserClass::call(Interpreter *interpreter, Token token, std::vector<std::shared_ptr<Value>> arguments) {

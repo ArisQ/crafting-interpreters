@@ -142,6 +142,10 @@ class Parser {
         if(match({FALSE, TRUE, NIL, NUMBER, STRING}))
             return std::make_shared<Literal>(previous().literal);
 
+        if(match(THIS)) {
+            return std::make_shared<This>(previous());
+        }
+
         if(match(IDENTIFIER)) {
             return std::make_shared<Variable>(previous());
         }

@@ -178,6 +178,7 @@ print c.str();
 c.str = "x";
 print c.str;
 // print c."y";
+print car().str();
 
 var testClassInstance;
 {
@@ -187,3 +188,19 @@ var testClassInstance;
     testClassInstance = testClass();
 }
 print testClassInstance;
+
+class thisTest {
+    speek() {
+        print "speek " + this;
+    }
+    speekX() {
+        print this.x;
+    }
+}
+thisTest().speek();
+var thisTestInstance = thisTest();
+thisTestInstance.speek();
+thisTestInstance.x = 1;
+thisTestInstance.speekX();
+
+// print this;

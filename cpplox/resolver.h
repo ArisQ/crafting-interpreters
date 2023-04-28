@@ -13,12 +13,17 @@ enum FunctionType {
     FUNCITON,
     METHOD,
 };
+enum ClassType {
+    CT_NONE,
+    CT_CLASS,
+};
 
 class Resolver: public ExprVisitor<void>, public StmtVisitor<void> {
     Lox *lox;
     Interpreter *interpreter;
 
     FunctionType currentFunction = NONE;
+    ClassType currentClass = CT_NONE;
 
     std::vector<std::map<std::string, bool>> scopes;
     void beginScope() {
@@ -90,6 +95,13 @@ public:
     void visitGrouping(Grouping *e) {
         resolve(e->expression);
     }
+    void visitThis(This *e) {
+        if(currentClass==CT_NONE) {
+            lox->error(e->keyword, "Can't use 'this' outside of a class.");
+            return;
+        }
+        resolveLocal(e, e->keyword);
+    }
     void visitLiteral(Literal *e) { /* nothing */ }
     void visitLogical(Logical *e) {
         resolve(e->left);
@@ -118,11 +130,22 @@ public:
         resolve(stmt->expression);
     }
     void visitClass(Class *stmt) {
+        auto enclosingClass = currentClass;
+        currentClass = CT_CLASS;
+
         declare(stmt->name);
+        define(stmt->name);
+
+        beginScope();
+        scopes.back()["this"] = true;
+
         for(auto &m: stmt->methods) {
             resolveFunction(*m, METHOD);
         }
-        define(stmt->name);
+
+        endScope();
+
+        currentClass = enclosingClass;
     }
     void visitFunction(Function *stmt) {
         declare(stmt->name);

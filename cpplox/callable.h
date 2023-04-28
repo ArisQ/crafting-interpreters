@@ -53,6 +53,7 @@ class NativeRead: public Callable {
     }
 };
 
+class UserClassInstance;
 class UserFunction: public Callable {
     Token name;
     std::vector<Token> parameters;
@@ -61,15 +62,23 @@ class UserFunction: public Callable {
     std::shared_ptr<Environment> closure;
 public:
     UserFunction(const Function &f, std::shared_ptr<Environment> closure);
+    UserFunction(
+        const Token &name,
+        const std::vector<Token> &parameters,
+        const std::vector<std::shared_ptr<Stmt>> &body,
+        std::shared_ptr<Environment> closure) : name(name), parameters(parameters), body(body), closure(closure)
+    {
+    }
 
     std::string toString() { return "<fun "+ name.lexeme +">"; }
 
     size_t arity() { return parameters.size(); }
 
     std::shared_ptr<Value> call(Interpreter *interpreter, Token token, std::vector<std::shared_ptr<Value>> arguments);
+
+    std::shared_ptr<UserFunction> bind(const std::shared_ptr<UserClassInstance> &instance);
 };
 
-class UserClassInstance;
 class UserClass: public Callable {
     friend UserClassInstance;
 
@@ -91,7 +100,7 @@ public:
     }
 };
 
-class UserClassInstance: public Value {
+class UserClassInstance: public Value, public std::enable_shared_from_this<UserClassInstance> {
     UserClass *klass;
 
     std::map<std::string, std::shared_ptr<Value>> fields;
@@ -110,7 +119,7 @@ public:
         }
 
         auto method = klass->findMethod(name.lexeme);
-        if(method!=nullptr) return method;
+        if(method!=nullptr) return method->bind(shared_from_this()); // shared_from_this !!!
 
         throw RuntimeError(name, "Undefined property '" + lexeme +"'.");
         return std::make_shared<NilValue>();

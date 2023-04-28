@@ -129,6 +129,9 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     std::shared_ptr<Value> visitGrouping(Grouping *e) {
         return evaluate(e->expression);
     }
+    std::shared_ptr<Value> visitThis(This *e) {
+        return lookUpVariable(e->keyword, e);
+    }
     std::shared_ptr<Value> visitLiteral(Literal *e) {
         return e->value;
     }
