@@ -10,7 +10,7 @@
 // Expression : *Expr expression
 // Function   : Token name, Token[] params, *Stmt[] body
 // Return     : Token keyword, *Expr value
-// Class      : Token name, *Function[] methods
+// Class      : Token name, *Variable superclass, *Function[] methods
 // If         : *Expr condition, *Stmt thenBranch, *Stmt elseBranch
 // Print      : *Expr expression
 // Var        : Token name, *Expr initializer

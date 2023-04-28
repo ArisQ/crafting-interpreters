@@ -199,13 +199,21 @@ class Parser {
     }
     std::shared_ptr<Stmt> classDeclaration() {
         Token name = consume(IDENTIFIER, "Expect class name.");
-        consume(LEFT_BRACE, "Expect '(' before class body.");
+
+        std::shared_ptr<Variable> superclass;
+        if(match(LESS)) {
+            consume(IDENTIFIER, "Expect superclass name.");
+            superclass = std::make_shared<Variable>(previous());
+        }
+
+        consume(LEFT_BRACE, "Expect '{' before class body.");
         std::vector<std::shared_ptr<Function>> methods;
         while(!check(RIGHT_BRACE) && !isAtEnd()) {
             methods.push_back(function("method"));
         }
-        consume(RIGHT_BRACE, "Expect ')' after class body.");
-        return std::make_shared<Class>(name, methods);
+        consume(RIGHT_BRACE, "Expect '}' after class body.");
+
+        return std::make_shared<Class>(name, superclass, methods);
     }
     // statements
     std::shared_ptr<Stmt> statement() {

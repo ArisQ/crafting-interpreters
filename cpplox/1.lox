@@ -219,3 +219,15 @@ print testInit("John").speek();
 print testInit("John");
 print testInit("John").init("Mike");
 print testInit("John").init("Mike").speek();
+
+class testInherit < testInit {
+    speekNew() {
+        print "speeking new";
+    }
+}
+print testInherit;
+print testInherit("inherited").speek();
+print testInherit("inherited").speekNew();
+
+// class testInheritSelf < testInheritSelf {}
+// class testInheritNonClass < x {}

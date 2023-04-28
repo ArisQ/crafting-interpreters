@@ -11,7 +11,7 @@
 // Expression : *Expr expression
 // Function   : Token name, Token[] params, *Stmt[] body
 // Return     : Token keyword, *Expr value
-// Class      : Token name, *Function[] methods
+// Class      : Token name, *Variable superclass, *Function[] methods
 // If         : *Expr condition, *Stmt thenBranch, *Stmt elseBranch
 // Print      : *Expr expression
 // Var        : Token name, *Expr initializer
@@ -230,10 +230,11 @@ struct Return: public Stmt {
 
 struct Class: public Stmt {
     Token name;
+    std::shared_ptr<Variable> superclass;
     std::vector<std::shared_ptr<Function>> methods;
 
     std::shared_ptr<void> _accept(_StmtVisitor * const v) { return v->visitClass(this); }
-    Class(Token name, std::vector<std::shared_ptr<Function>> methods): name(name), methods(methods) {}
+    Class(Token name, std::shared_ptr<Variable> superclass, std::vector<std::shared_ptr<Function>> methods): name(name), superclass(superclass), methods(methods) {}
 };
 
 struct If: public Stmt {

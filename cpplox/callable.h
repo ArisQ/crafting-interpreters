@@ -85,10 +85,11 @@ public:
 class UserClass: public Callable {
     friend UserClassInstance;
 
+    std::shared_ptr<UserClass> superclass;
     Token name;
     std::map<std::string, std::shared_ptr<UserFunction>> methods;
 public:
-    UserClass(Class *k, std::map<std::string, std::shared_ptr<UserFunction>> methods);
+    UserClass(Class *k, std::shared_ptr<UserClass> superclass, std::map<std::string, std::shared_ptr<UserFunction>> methods);
 
     std::string toString() { return "<class "+ name.lexeme +">"; }
 
@@ -104,6 +105,11 @@ public:
     std::shared_ptr<UserFunction> findMethod(const std::string &name) {
         if(methods.contains(name))
             return methods.at(name);
+        
+        if (superclass!=nullptr) {
+            if(superclass->methods.contains(name))
+                return superclass->methods.at(name);
+        }
         return nullptr;
     }
 };

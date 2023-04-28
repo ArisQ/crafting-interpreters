@@ -230,13 +230,21 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         environment->define(stmt->name.lexeme, v);
     }
     void visitClass(Class *stmt) {
+        std::shared_ptr<UserClass> superclass;
+        if(stmt->superclass!=nullptr) {
+            superclass = std::dynamic_pointer_cast<UserClass>(evaluate(stmt->superclass));
+            if(superclass==nullptr) {
+                throw RuntimeError(stmt->superclass->name, "Superclass must be a class.");
+            }
+        }
+
         environment->define(stmt->name.lexeme, std::make_shared<NilValue>());
         std::map<std::string, std::shared_ptr<UserFunction>> methods;
         for(const auto &method: stmt->methods) {
             auto isInitializer = method->name.lexeme == "init";
             methods[method->name.lexeme] = std::make_shared<UserFunction>(*method, environment, isInitializer); // 重复引用environment
         }
-        auto klass = std::make_shared<UserClass>(stmt, methods);
+        auto klass = std::make_shared<UserClass>(stmt, superclass, methods);
         environment->assign(stmt->name, klass);
     }
     void visitFunction(Function *stmt) {

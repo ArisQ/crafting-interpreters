@@ -27,7 +27,7 @@ std::shared_ptr<UserFunction> UserFunction::bind(const std::shared_ptr<UserClass
 }
 
 
-UserClass::UserClass(Class *k, std::map<std::string, std::shared_ptr<UserFunction>> methods): name(k->name), methods(methods) {}
+UserClass::UserClass(Class *k, std::shared_ptr<UserClass> superclass, std::map<std::string, std::shared_ptr<UserFunction>> methods): name(k->name), superclass(superclass),methods(methods) {}
 
 std::shared_ptr<Value> UserClass::call(Interpreter *interpreter, Token token, std::vector<std::shared_ptr<Value>> arguments) {
     // TODO class会应shared_ptr循环引用而保留，解决后需要处理class的生命周期问题

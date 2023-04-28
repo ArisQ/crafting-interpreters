@@ -137,6 +137,14 @@ public:
         declare(stmt->name);
         define(stmt->name);
 
+        auto &superclass = stmt->superclass;
+        if(superclass != nullptr) {
+            if(superclass->name.lexeme == stmt->name.lexeme) {
+                lox->error(superclass->name, "A class can't inherit from itself.");
+            }
+            resolve(superclass);
+        }
+
         beginScope();
         scopes.back()["this"] = true;
 
