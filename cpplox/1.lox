@@ -234,3 +234,9 @@ print testInherit("child2").speekNew();
 
 // class testInheritSelf < testInheritSelf {}
 // class testInheritNonClass < x {}
+
+// class testNotChild {
+//     cook() {
+//         super.cook();
+//     }
+// }

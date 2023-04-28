@@ -17,6 +17,7 @@ enum FunctionType {
 enum ClassType {
     CT_NONE,
     CT_CLASS,
+    CT_SUBCLASS,
 };
 
 class Resolver: public ExprVisitor<void>, public StmtVisitor<void> {
@@ -107,6 +108,9 @@ public:
         if(currentClass==CT_NONE) {
             lox->error(e->keyword, "Can't use 'super' outside of a class.");
             return;
+        } else if(currentClass != CT_SUBCLASS) {
+            lox->error(e->keyword, "Can't use 'super' in a class without superclass.");
+            return;
         }
         resolveLocal(e, e->keyword);
     }
@@ -149,6 +153,7 @@ public:
             if(superclass->name.lexeme == stmt->name.lexeme) {
                 lox->error(superclass->name, "A class can't inherit from itself.");
             }
+            currentClass = CT_SUBCLASS;
             resolve(superclass);
 
             beginScope();

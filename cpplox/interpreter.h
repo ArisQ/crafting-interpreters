@@ -248,7 +248,7 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
             }
         }
 
-        auto &previous_env = environment;
+        auto previous_env = environment;
         environment->define(stmt->name.lexeme, std::make_shared<NilValue>());
         if(superclass!=nullptr) {
             environment = std::make_shared<Environment>(environment);
