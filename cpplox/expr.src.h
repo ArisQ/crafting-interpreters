@@ -11,6 +11,7 @@
 // Get         : *Expr object, Token name
 // Set         : *Expr object, Token name, *Expr value
 // This        : Token keyword
+// Super       : Token keyword, Token method
 // Grouping    : *Expr expression
 // Literal     : *Value value
 // Logical     : *Expr left, Token op, *Expr right

@@ -132,6 +132,16 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
     std::shared_ptr<Value> visitThis(This *e) {
         return lookUpVariable(e->keyword, e);
     }
+    std::shared_ptr<Value> visitSuper(Super *e) {
+        auto distance = locals[e];
+        auto superclass = std::dynamic_pointer_cast<UserClass>(environment->getAt(distance, "super"));
+        auto object = std::dynamic_pointer_cast<UserClassInstance>( environment->getAt(distance - 1 , "this"));
+        auto method = superclass->findMethod(e->method.lexeme);
+        if(method==nullptr) {
+            throw RuntimeError(e->method, "Undefined property '" + e->method.lexeme + "'.");
+        }
+        return method->bind(object);
+    }
     std::shared_ptr<Value> visitLiteral(Literal *e) {
         return e->value;
     }
@@ -238,13 +248,20 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
             }
         }
 
+        auto &previous_env = environment;
         environment->define(stmt->name.lexeme, std::make_shared<NilValue>());
+        if(superclass!=nullptr) {
+            environment = std::make_shared<Environment>(environment);
+            environment->define("super", superclass);
+        }
+
         std::map<std::string, std::shared_ptr<UserFunction>> methods;
         for(const auto &method: stmt->methods) {
             auto isInitializer = method->name.lexeme == "init";
             methods[method->name.lexeme] = std::make_shared<UserFunction>(*method, environment, isInitializer); // 重复引用environment
         }
         auto klass = std::make_shared<UserClass>(stmt, superclass, methods);
+        environment = previous_env; // restore if environment changed by superclass
         environment->assign(stmt->name, klass);
     }
     void visitFunction(Function *stmt) {

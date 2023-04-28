@@ -146,6 +146,13 @@ class Parser {
             return std::make_shared<This>(previous());
         }
 
+        if(match(SUPER)) {
+            auto keyword = previous();
+            consume(DOT, "Expect '.' after 'super'.");
+            auto method = consume(IDENTIFIER, "Expect superclass method name.");
+            return std::make_shared<Super>(keyword, method);
+        }
+
         if(match(IDENTIFIER)) {
             return std::make_shared<Variable>(previous());
         }

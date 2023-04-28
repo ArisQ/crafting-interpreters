@@ -12,6 +12,7 @@
 // Get         : *Expr object, Token name
 // Set         : *Expr object, Token name, *Expr value
 // This        : Token keyword
+// Super       : Token keyword, Token method
 // Grouping    : *Expr expression
 // Literal     : *Value value
 // Logical     : *Expr left, Token op, *Expr right
@@ -25,6 +26,7 @@ class Call;
 class Get;
 class Set;
 class This;
+class Super;
 class Grouping;
 class Literal;
 class Logical;
@@ -41,6 +43,7 @@ public:
     virtual T visitGet(Get *) = 0;
     virtual T visitSet(Set *) = 0;
     virtual T visitThis(This *) = 0;
+    virtual T visitSuper(Super *) = 0;
     virtual T visitGrouping(Grouping *) = 0;
     virtual T visitLiteral(Literal *) = 0;
     virtual T visitLogical(Logical *) = 0;
@@ -57,6 +60,7 @@ public:
     virtual std::shared_ptr<void> visitGet(Get *) = 0;
     virtual std::shared_ptr<void> visitSet(Set *) = 0;
     virtual std::shared_ptr<void> visitThis(This *) = 0;
+    virtual std::shared_ptr<void> visitSuper(Super *) = 0;
     virtual std::shared_ptr<void> visitGrouping(Grouping *) = 0;
     virtual std::shared_ptr<void> visitLiteral(Literal *) = 0;
     virtual std::shared_ptr<void> visitLogical(Logical *) = 0;
@@ -87,6 +91,9 @@ public:
     }
     std::shared_ptr<void> visitThis(This *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitThis(e)));
+    }
+    std::shared_ptr<void> visitSuper(Super *e) {
+        return std::static_pointer_cast<void>(std::make_shared<T>(v->visitSuper(e)));
     }
     std::shared_ptr<void> visitGrouping(Grouping *e) {
         return std::static_pointer_cast<void>(std::make_shared<T>(v->visitGrouping(e)));
@@ -128,6 +135,9 @@ public:
     }
     std::shared_ptr<void> visitThis(This *e) {
         return std::static_pointer_cast<void>(v->visitThis(e));
+    }
+    std::shared_ptr<void> visitSuper(Super *e) {
+        return std::static_pointer_cast<void>(v->visitSuper(e));
     }
     std::shared_ptr<void> visitGrouping(Grouping *e) {
         return std::static_pointer_cast<void>(v->visitGrouping(e));
@@ -174,6 +184,10 @@ public:
     }
     std::shared_ptr<void> visitThis(This *e) {
         v->visitThis(e);
+        return nullptr;
+    }
+    std::shared_ptr<void> visitSuper(Super *e) {
+        v->visitSuper(e);
         return nullptr;
     }
     std::shared_ptr<void> visitGrouping(Grouping *e) {
@@ -272,6 +286,14 @@ struct This: public Expr {
 
     std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitThis(this); }
     This(Token keyword): keyword(keyword) {}
+};
+
+struct Super: public Expr {
+    Token keyword;
+    Token method;
+
+    std::shared_ptr<void> _accept(_ExprVisitor * const v) { return v->visitSuper(this); }
+    Super(Token keyword, Token method): keyword(keyword), method(method) {}
 };
 
 struct Grouping: public Expr {

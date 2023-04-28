@@ -51,6 +51,9 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
     std::string visitThis(This *e) {
         return e->keyword.lexeme;
     }
+    std::string visitSuper(Super *e) {
+        return parenthesize(e->keyword.lexeme, e->method);
+    }
     std::string visitLiteral(Literal *e) {
         return e->value->toString();
     }
@@ -61,7 +64,7 @@ class AstPrinter: public ExprVisitor<std::string>, StmtVisitor<std::string> {
         return parenthesize(e->op.lexeme, {e->right});
     }
     std::string visitCall(Call *e) {
-        return parenthesize(e->callee->accept(this), e->arguments);
+        return parenthesize("call " + e->callee->accept(this), e->arguments);
     }
     std::string visitGet(Get *e) {
         return parenthesize("get", e->name, {e->object});

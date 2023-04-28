@@ -103,6 +103,13 @@ public:
         }
         resolveLocal(e, e->keyword);
     }
+    void visitSuper(Super *e) {
+        if(currentClass==CT_NONE) {
+            lox->error(e->keyword, "Can't use 'super' outside of a class.");
+            return;
+        }
+        resolveLocal(e, e->keyword);
+    }
     void visitLiteral(Literal *e) { /* nothing */ }
     void visitLogical(Logical *e) {
         resolve(e->left);
@@ -143,6 +150,9 @@ public:
                 lox->error(superclass->name, "A class can't inherit from itself.");
             }
             resolve(superclass);
+
+            beginScope();
+            scopes.back()["super"] = true;
         }
 
         beginScope();
@@ -156,6 +166,9 @@ public:
             resolveFunction(*m, declaration);
         }
 
+        if(stmt->superclass!=nullptr) {
+            endScope();
+        }
         endScope();
 
         currentClass = enclosingClass;
