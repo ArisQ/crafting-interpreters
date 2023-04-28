@@ -204,3 +204,18 @@ thisTestInstance.x = 1;
 thisTestInstance.speekX();
 
 // print this;
+
+class testInit {
+    init(name) {
+        this.name = name;
+        // return "x";
+        return;
+    }
+    speek() {
+        return this.name;
+    }
+}
+print testInit("John").speek();
+print testInit("John");
+print testInit("John").init("Mike");
+print testInit("John").init("Mike").speek();

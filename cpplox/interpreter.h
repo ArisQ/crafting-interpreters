@@ -233,7 +233,8 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         environment->define(stmt->name.lexeme, std::make_shared<NilValue>());
         std::map<std::string, std::shared_ptr<UserFunction>> methods;
         for(const auto &method: stmt->methods) {
-            methods[method->name.lexeme] = std::make_shared<UserFunction>(*method, environment); // 重复引用environment
+            auto isInitializer = method->name.lexeme == "init";
+            methods[method->name.lexeme] = std::make_shared<UserFunction>(*method, environment, isInitializer); // 重复引用environment
         }
         auto klass = std::make_shared<UserClass>(stmt, methods);
         environment->assign(stmt->name, klass);
@@ -253,7 +254,12 @@ class Interpreter: public ExprVisitor<std::shared_ptr<Value>>, public StmtVisito
         environment->define(stmt->name.lexeme, std::make_shared<UserFunction>(*stmt, environment));
     }
     void visitReturn(Return *stmt) {
-        auto v = evaluate(stmt->value);
+        std::shared_ptr<Value> v;
+        if (stmt->value != nullptr) {
+            v = evaluate(stmt->value);
+        } else {
+            v = std::make_shared<NilValue>();
+        }
         throw ReturnException(v);
     }
     void visitBlock(Block *stmt) {

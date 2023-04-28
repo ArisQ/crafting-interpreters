@@ -36,8 +36,11 @@ public:
         }
         throw RuntimeError(name, "Undefine variable '" + n + "'.");
     }
+    std::shared_ptr<Value> getAt(int distance, const std::string &name) {
+        return ancestor(distance).values.at(name);
+    }
     std::shared_ptr<Value> getAt(int distance, const Token &name) {
-        return ancestor(distance).values.at(name.lexeme);
+        return getAt(distance, name.lexeme);
     }
     void assignAt(int distance, const Token &name, const std::shared_ptr<Value> &v) {
         ancestor(distance).values[name.lexeme] = v;

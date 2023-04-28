@@ -11,6 +11,7 @@
 enum FunctionType {
     NONE,
     FUNCITON,
+    INITIALIZER,
     METHOD,
 };
 enum ClassType {
@@ -140,7 +141,11 @@ public:
         scopes.back()["this"] = true;
 
         for(auto &m: stmt->methods) {
-            resolveFunction(*m, METHOD);
+            auto declaration = METHOD;
+            if (m->name.lexeme == "init") {
+                declaration = INITIALIZER;
+            }
+            resolveFunction(*m, declaration);
         }
 
         endScope();
@@ -156,8 +161,12 @@ public:
         if(currentFunction==NONE) {
             lox->error(stmt->keyword, "Can't return from top-level code.");
         }
-        if(stmt->value!=nullptr)
+        if(stmt->value!=nullptr) {
+            if(currentFunction==INITIALIZER) {
+                lox->error(stmt->keyword, "Can't return a value from an initializer.");
+            }
             resolve(stmt->value);
+        }
     }
     void visitIf(If *stmt) {
         resolve(stmt->condition);
