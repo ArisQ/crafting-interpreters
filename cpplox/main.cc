@@ -2,7 +2,10 @@
 
 #include <iostream>
 
+#define DEBUG_TRACE_EXECUTION
+
 #include "lox.h"
+#include "vm/vm.h"
 #include "vm/chunk.h"
 #include "vm/debug.h"
 
@@ -15,12 +18,15 @@ int main(int argc, char *argv[])
     // unsaved
 
     Chunk chunk;
-    chunk.write(OP_RETURN);
-    chunk.write(OP_CONSTANT);
-    chunk.write(chunk.addConstant(1));
-    chunk.write(OP_CONSTANT);
-    chunk.write(chunk.addConstant(1));
+    chunk.writeConstant(3.14, 2);
+    chunk.writeConstant(1024, 2);
+    chunk.write(OP_NEGATE, 2);
+    chunk.write(OP_ADD, 2);
+    chunk.write(OP_RETURN, 3);
     cout << ChunkDebugName("test chunk") << chunk << endl;
+
+    VM vm(chunk);
+    vm.run();
     return 0;
 
     Lox lox;

@@ -41,10 +41,10 @@ public:
         }
         values[count++] = value;
     }
-    const Value &get(const size_t offset) const {
+    inline const Value get(const size_t offset) const {
         return values[offset];
     }
-    const size_t getCount() const {
+    inline const size_t getCount() const {
         return count;
     }
 };

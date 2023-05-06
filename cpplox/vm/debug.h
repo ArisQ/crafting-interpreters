@@ -17,7 +17,7 @@ size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chun
 {
     uint8_t constant = chunk.get(offset + 1);
     os << name << " "
-       << std::setfill(' ') << std::setw(4) << constant << " '"
+       << std::setfill(' ') << std::setw(4) << uint(constant) << " '"
        << chunk.getConstant(constant) << '\'' << std::endl;
     return offset + 2;
 }
@@ -25,11 +25,26 @@ size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chun
 size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offset)
 {
     os << std::setfill('0') << std::setw(4) << offset << ' ';
+    if(offset>0 && chunk.getLine(offset)==chunk.getLine(offset-1)) {
+        os << "   | ";
+    } else {
+        os << std::setfill(' ') << std::setw(4) << chunk.getLine(offset) << ' ';
+    }
     auto instruction = chunk.get(offset);
     switch (instruction)
     {
     case OP_CONSTANT:
         return constantInstruction(os, "OP_CONSTANT", chunk, offset);
+    case OP_ADD:
+        return simpleInstruction(os, "OP_ADD", offset);
+    case OP_SUBSTRACT:
+        return simpleInstruction(os, "OP_SUBSTRACT", offset);
+    case OP_MULTIPLY:
+        return simpleInstruction(os, "OP_MULTIPLY", offset);
+    case OP_DIVIDE:
+        return simpleInstruction(os, "OP_DIVIDE", offset);
+    case OP_NEGATE:
+        return simpleInstruction(os, "OP_NEGATE", offset);
     case OP_RETURN:
         return simpleInstruction(os, "OP_RETURN", offset);
     default:
