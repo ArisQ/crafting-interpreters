@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
     chunk.write(OP_RETURN, 3);
     cout << ChunkDebugName("test chunk") << chunk << endl;
 
-    VM vm(chunk);
-    vm.run();
+    VM vm;
+    vm.interpret(&chunk);
     return 0;
 
     Lox lox;

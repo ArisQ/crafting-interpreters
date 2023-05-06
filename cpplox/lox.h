@@ -4,6 +4,9 @@
 #include <string>
 #include "token.h"
 #include "interpreter.h"
+#include "vm/vm.h"
+
+#define INTERPRET_WITH_VM
 
 class Lox
 {
@@ -18,7 +21,11 @@ class Lox
     void error(Token token, std::string message);
     void info(int line, std::string message);
 
+#ifdef INTERPRET_WITH_VM
+    vm::VM vm;
+#else
     Interpreter interpreter;
+#endif
     bool hasRuntimeError = false;
     void runtimeError(RuntimeError err);
 public:

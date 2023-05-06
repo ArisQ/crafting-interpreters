@@ -21,13 +21,13 @@ typedef enum {
 static const size_t STACK_MAX = 256;
 
 class VM {
-    const Chunk &chunk;
+    const Chunk *chunk;
     uint8_t *ip; // instruction pointer or program counter
     Value stack[STACK_MAX];
     Value *stackTop;
 
     inline const uint8_t readByte() { return *ip++; }
-    inline const Value readConstant() { return chunk.getConstant(readByte()); }
+    inline const Value readConstant() { return chunk->getConstant(readByte()); }
 
     inline void push(Value value) { *stackTop++ = value; }
     inline Value pop() { return *--stackTop; }
@@ -36,10 +36,13 @@ class VM {
     // }
 
 public:
-    VM(const Chunk &chunk): chunk(chunk), ip(chunk.code) {
+    // VM() { stackTop = stack; }
+    InterpretResult interpret(const Chunk *k) {
+        chunk = k;
+        ip = k->code;
         stackTop = stack;
+        return run();
     }
-
     InterpretResult run() {
 // #define BINARY_OP(op) push(pop() op pop())
 #define BINARY_OP(op)   \
@@ -56,7 +59,7 @@ public:
                 std::cout << "[ " << *slot << " ]";
             }
             std::cout << std::endl;
-            disassembleInstruction(std::cout, chunk, (size_t)(ip - chunk.code));
+            disassembleInstruction(std::cout, *chunk, (size_t)(ip - chunk->code));
 #endif
             uint8_t instruction;
             switch (instruction=readByte()) {

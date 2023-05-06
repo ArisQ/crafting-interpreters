@@ -13,6 +13,8 @@
 #include "expr.h"
 #include "ast_printer.h"
 
+#include "vm/compiler.h"
+
 // TODO: do not using namespace in header
 using namespace std;
 // using string = std::string;
@@ -63,6 +65,16 @@ void Lox::run(const string &s)
     }
     std::cout<< AstPrinter().print(stmts)<<std::endl;
 
+#ifdef INTERPRET_WITH_VM
+    try {
+        vm::Compiler compiler;
+        // auto chunk = compiler.compile(stmts);
+        auto chunk = compiler.compile();
+        vm.interpret(&chunk);
+    } catch (RuntimeError err) {
+        runtimeError(err);
+    }
+#else
     Resolver resolver(this, &interpreter);
     resolver.resolve(stmts);
     if(hasError) return;
@@ -72,6 +84,7 @@ void Lox::run(const string &s)
     } catch (RuntimeError err) {
         runtimeError(err);
     }
+#endif
 
     /* auto v = std::make_shared<NumberValue>(123); */
     /* std::cout<<"v "<< v<<" " << v.get() <<std::endl; */
