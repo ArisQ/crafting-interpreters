@@ -68,8 +68,10 @@ void Lox::run(const string &s)
 #ifdef INTERPRET_WITH_VM
     try {
         vm::Compiler compiler;
-        // auto chunk = compiler.compile(stmts);
-        auto chunk = compiler.compile();
+        const vm::Chunk chunk = compiler.compile(stmts);
+        if(compiler.hasError()) {
+            return;
+        }
         vm.interpret(&chunk);
     } catch (RuntimeError err) {
         runtimeError(err);

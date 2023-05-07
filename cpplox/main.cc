@@ -15,19 +15,6 @@ using namespace vm;
 int main(int argc, char *argv[])
 {
     cout << "lox implemented by c++!" << endl;
-    // unsaved
-
-    Chunk chunk;
-    chunk.writeConstant(3.14, 2);
-    chunk.writeConstant(1024, 2);
-    chunk.write(OP_NEGATE, 2);
-    chunk.write(OP_ADD, 2);
-    chunk.write(OP_RETURN, 3);
-    cout << ChunkDebugName("test chunk") << chunk << endl;
-
-    VM vm;
-    vm.interpret(&chunk);
-    return 0;
 
     Lox lox;
     if (argc > 2)
