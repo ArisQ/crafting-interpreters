@@ -17,7 +17,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         std::cerr << "[line " << currentLine << "] "<< msg << std::endl;
     }
 
-    void writeConstant(const double value) {
+    void writeConstant(const Value value) {
         auto constant = chunk->addConstant(value);
         if (constant > UINT8_MAX) {
             error("Too many constants in on chunk.");
@@ -60,7 +60,11 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     }
     void visitLiteral(Literal *e) {
         if(auto n = std::dynamic_pointer_cast<NumberValue>(e->value)) {
-            writeConstant(n->v);
+            writeConstant(NUMBER_VAL(n->v));
+        } else if(auto n = std::dynamic_pointer_cast<NilValue>(e->value)) {
+            writeConstant(NIL_VAL);
+        } else if(auto n = std::dynamic_pointer_cast<BoolValue>(e->value)) {
+            writeConstant(BOOL_VAL(n->v));
         }
     }
     void visitLogical(Logical *) {}

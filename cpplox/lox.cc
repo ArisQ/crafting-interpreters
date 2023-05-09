@@ -72,7 +72,8 @@ void Lox::run(const string &s)
         if(compiler.hasError()) {
             return;
         }
-        vm.interpret(&chunk);
+        auto result = vm.interpret(&chunk);
+        std::cout << "vm result " << result << std::endl;
     } catch (RuntimeError err) {
         runtimeError(err);
     }
