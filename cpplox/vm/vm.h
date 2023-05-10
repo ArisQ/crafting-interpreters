@@ -1,6 +1,8 @@
 #ifndef _VM_H_
 #define _VM_H_
 
+#include <cstdarg>
+
 #include "chunk.h"
 #include "debug.h"
 
@@ -49,6 +51,10 @@ class VM {
         fprintf(stderr, "[line %d] in script\n", line);
         resetStack();
     }
+
+    static inline bool isFalsey(const Value value) {
+        return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+    }
 public:
     // VM() { stackTop = stack; }
     InterpretResult interpret(const Chunk *k) {
@@ -59,11 +65,15 @@ public:
     }
     InterpretResult run() {
 // #define BINARY_OP(op) push(pop() op pop())
-#define BINARY_OP(op)   \
+#define BINARY_OP(valueType, op)   \
     do {                \
-        auto b = pop(); \
-        auto a = pop(); \
-        push(a op b);   \
+        if(!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
+            runtimeError("Operands must be number"); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        auto b = AS_NUMBER(pop()); \
+        auto a = AS_NUMBER(pop()); \
+        push(valueType(a op b));   \
     } while (false)
 
         for (;;) {
@@ -81,18 +91,31 @@ public:
                 push(readConstant());
                 break;
             }
+            case OP_NIL: push(NIL_VAL); break;
+            case OP_TRUE: push(BOOL_VAL(true)); break;
+            case OP_FALSE: push(BOOL_VAL(false)); break;
             // case OP_ADD: binaryOp(std::plus<double>()); break;
-            // case OP_ADD: BINARY_OP(+); break;
-            // case OP_SUBSTRACT: BINARY_OP(-); break;
-            // case OP_MULTIPLY: BINARY_OP(*); break;
-            // case OP_DIVIDE: BINARY_OP(/); break;
-            // case OP_NEGATE: push(-pop()); break;
+            case OP_EQUAL: {
+                auto b = pop();
+                auto a = pop();
+                push(BOOL_VAL(a==b)); // push(BOOL_VAL(valuesEqual(a, b)));
+                break;
+            }
+            case OP_LESS: BINARY_OP(BOOL_VAL, <); break;
+            case OP_GREATER: BINARY_OP(BOOL_VAL, >); break;
+            case OP_ADD: BINARY_OP(NUMBER_VAL, +); break;
+            case OP_SUBSTRACT: BINARY_OP(NUMBER_VAL, -); break;
+            case OP_MULTIPLY: BINARY_OP(NUMBER_VAL, *); break;
+            case OP_DIVIDE: BINARY_OP(NUMBER_VAL, /); break;
             case OP_NEGATE:
                 if (!IS_NUMBER(peek(0))) {
                     runtimeError("Operand must be number.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 push(NUMBER_VAL(-AS_NUMBER(pop())));
+                break;
+            case OP_NOT:
+                push(BOOL_VAL(isFalsey(pop())));
                 break;
             case OP_RETURN: {
                 auto ret = pop();

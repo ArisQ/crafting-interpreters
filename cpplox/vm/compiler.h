@@ -30,6 +30,10 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     void writeOp(const OpCode op) {
         chunk->write(op, currentLine);
     }
+    void writeOp(const OpCode op1, const OpCode op2) {
+        writeOp(op1);
+        writeOp(op2);
+    }
 
     void visitAssign(Assign *) {}
     void visitBinary(Binary *e) {
@@ -41,12 +45,12 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
             case MINUS: writeOp(OP_SUBSTRACT); break;
             case STAR: writeOp(OP_MULTIPLY); break;
             case SLASH: writeOp(OP_DIVIDE); break;
-            // case GREATER: chunk->write(OP_SUBSTRACT, currentLine); break;
-            // case GREATER_EQUAL: chunk->write(OP_SUBSTRACT, currentLine); break;
-            // case LESS: chunk->write(OP_SUBSTRACT, currentLine); break;
-            // case LESS_EQUAL: chunk->write(OP_SUBSTRACT, currentLine); break;
-            // case BANG_EQUAL: chunk->write(OP_SUBSTRACT, currentLine); break;
-            // case EQUAL_EQUAL: chunk->write(OP_SUBSTRACT, currentLine); break;
+            case GREATER: writeOp(OP_GREATER); break;
+            case GREATER_EQUAL: writeOp(OP_LESS, OP_NOT); break;
+            case LESS: writeOp(OP_LESS); break;
+            case LESS_EQUAL: writeOp(OP_GREATER, OP_NOT); break;
+            case EQUAL_EQUAL: writeOp(OP_EQUAL); break;
+            case BANG_EQUAL: writeOp(OP_EQUAL, OP_NOT); break;
             default: error("compiler error visit non-binary expr.");
         }
     }
@@ -62,16 +66,16 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         if(auto n = std::dynamic_pointer_cast<NumberValue>(e->value)) {
             writeConstant(NUMBER_VAL(n->v));
         } else if(auto n = std::dynamic_pointer_cast<NilValue>(e->value)) {
-            writeConstant(NIL_VAL);
+            writeOp(OP_NIL);
         } else if(auto n = std::dynamic_pointer_cast<BoolValue>(e->value)) {
-            writeConstant(BOOL_VAL(n->v));
+            writeOp(n->v?OP_TRUE:OP_FALSE);
         }
     }
     void visitLogical(Logical *) {}
     void visitUnary(Unary *e) {
         e->right->accept(this);
         switch(e->op.type) {
-            case BANG: break;
+            case BANG: writeOp(OP_NOT); break;
             case MINUS: writeOp(OP_NEGATE); break;
             default: error("compiler error visit non-binary expr.");
         }

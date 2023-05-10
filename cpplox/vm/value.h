@@ -29,7 +29,8 @@ typedef struct {
 #define IS_NUMBER(v) ((v).type == VAL_NUMBER)
 
 std::ostream &operator<<(std::ostream &os, const Value &v);
-
+bool operator==(const Value l, const Value r);
+bool valuesEqual(const Value l, const Value r);
 
 class ValueArray {
     int capacity;
