@@ -55,6 +55,8 @@ class Chunk {
             throw std::runtime_error("reallocate lines failed.");
     }
 public:
+    ObjMgr objMgr;
+
     Chunk() : count(0), capacity(0), code(nullptr), lines(nullptr) {}
     Chunk(const Chunk &) = delete;
     Chunk(Chunk &&c) : count(c.count),

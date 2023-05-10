@@ -70,7 +70,8 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         } else if(auto n = std::dynamic_pointer_cast<BoolValue>(e->value)) {
             writeOp(n->v?OP_TRUE:OP_FALSE);
         } else if(auto n = std::dynamic_pointer_cast<StringValue>(e->value)) {
-            writeConstant(OBJ_VAL(new ObjString(n->v)));
+            // writeConstant(OBJ_VAL(new ObjString(n->v)));
+            writeConstant(OBJ_VAL(chunk->objMgr.NewString(n->v))); // 常量的Object由chunk管理（属于代码段）
         }
     }
     void visitLogical(Logical *) {}

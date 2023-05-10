@@ -4,15 +4,19 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <string>
+#include <iostream>
 
 namespace vm {
 
 typedef enum {
+    OBJ_UNDEFINED,
     OBJ_STRING,
 } ObjType;
 
 struct Obj {
     ObjType type;
+    Obj *next;
 };
 
 #define OBJ_TYPE(v) (AS_OBJ(v)->type)
@@ -23,6 +27,33 @@ struct ObjString {
     Obj obj;
     size_t length;
     const char *chars;
+
+    ~ObjString() {
+        if (chars!=nullptr) {
+            fprintf(stderr, "free %s\n", chars);
+            free((void *)chars);
+        }
+    }
+
+    ObjString(const ObjString &) = delete;
+    ObjString(ObjString && o) = delete;
+    // ObjString(ObjString && o) {
+    //     printf("move constructor for ObjString %s\n", o.chars);
+    //     obj = o.obj;
+    //     length = o.length;
+    //     chars = o.chars;
+    //     o.chars = nullptr;
+    //     o.length = 0;
+    // }
+
+    ObjString *operator+(const ObjString &r) {
+        return new ObjString(this, &r);
+    }
+
+    friend class ObjMgr;
+
+private:
+    // 私有constructor，只有ObjMgr能够构造
 
     // new ObjString == copyString/allocateString
     ObjString(const char *c, size_t len) {
@@ -46,24 +77,6 @@ struct ObjString {
     }
     ObjString(const char *c) : ObjString(c, strlen(c)) {}
     ObjString(const std::string &s) : ObjString(s.c_str(), s.size()) {} // used by compiler to convert from StringValue
-    ~ObjString() {
-        if (chars!=nullptr)
-            free((void *)chars);
-    }
-
-    ObjString(const ObjString &) = delete;
-    ObjString(ObjString && o) {
-        printf("move constructor for ObjString %s\n", o.chars);
-        obj = o.obj;
-        length = o.length;
-        chars = o.chars;
-        o.chars = nullptr;
-        o.length = 0;
-    }
-
-    ObjString *operator+(const ObjString &r) {
-        return new ObjString(this, &r);
-    }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
@@ -74,6 +87,40 @@ static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
     }
     return os;
 }
+
+class ObjMgr {
+    Obj *objects;
+
+public:
+    ObjMgr() : objects(nullptr) {}
+    ~ObjMgr() {
+        printf("destruct obj mgr\n");
+        auto object = objects;
+        while(object != nullptr) {
+            auto next = object->next;
+            switch (object->type) {
+            case OBJ_STRING: delete (ObjString*)object; break; // 转成ObjString再删除，否则析构函数不会被调用。参考多态情况下的虚析构函数
+            default: break;
+            }
+            object = next;
+        }
+    }
+
+#define INSERT_OBJ(o) \
+    auto obj = new o; \
+    obj->obj.next = objects; \
+    objects = (Obj *)obj; \
+    return obj;
+
+    ObjString *NewString(const ObjString *const a, const ObjString *const b) {
+        INSERT_OBJ(ObjString(a, b));
+    }
+    ObjString *NewString(const std::string &s) {
+        INSERT_OBJ(ObjString(s));
+    }
+#undef INSERT_OBJ
+
+};
 
 }
 

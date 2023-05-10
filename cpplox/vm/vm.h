@@ -27,6 +27,7 @@ class VM {
     uint8_t *ip; // instruction pointer or program counter
     Value stack[STACK_MAX];
     Value *stackTop;
+    ObjMgr objMgr;
 
     inline const uint8_t readByte() { return *ip++; }
     inline const Value readConstant() { return chunk->getConstant(readByte()); }
@@ -107,7 +108,7 @@ public:
                 if(IS_STRING(peek(0)) && IS_STRING(peek(1))) {
                     auto b = AS_STRING(pop());
                     auto a = AS_STRING(pop());
-                    push(OBJ_VAL(new ObjString(a, b)));
+                    push(OBJ_VAL(objMgr.NewString(a, b)));
                     // push(OBJ_VAL((*a) + (*b)));
                 } else if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
                     auto b = AS_NUMBER(pop());
