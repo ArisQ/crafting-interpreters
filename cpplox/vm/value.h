@@ -3,12 +3,15 @@
 
 #include <memory>
 
+#include "object.h"
+
 namespace vm {
 
 typedef enum {
     VAL_BOOL,
     VAL_NIL,
     VAL_NUMBER,
+    VAL_OBJ,
 } ValueType;
 
 typedef struct {
@@ -16,17 +19,31 @@ typedef struct {
     union {
         bool boolean;
         double number;
+        Obj *obj;
     } as;
 } Value;
 
 #define BOOL_VAL(v) ((Value){VAL_BOOL, {.boolean = v}})
 #define NIL_VAL ((Value){VAL_NIL, {.number = 0}})
 #define NUMBER_VAL(v) ((Value){VAL_NUMBER, {.number = v}})
+#define OBJ_VAL(v) ((Value){VAL_OBJ, {.obj = (Obj *)v}})
+
 #define AS_BOOL(v) ((v).as.boolean)
 #define AS_NUMBER(v) ((v).as.number)
+#define AS_OBJ(v) ((v).as.obj)
+
 #define IS_BOOL(v) ((v).type == VAL_BOOL)
 #define IS_NIL(v) ((v).type == VAL_NIL)
 #define IS_NUMBER(v) ((v).type == VAL_NUMBER)
+#define IS_OBJ(v) ((v).type == VAL_OBJ)
+
+static inline bool isObjType(Value value, ObjType type) {
+    return IS_OBJ(value) && AS_OBJ(value)->type == type;
+}
+#define IS_STRING(v) isObjType(v, OBJ_STRING)
+#define AS_STRING(v) ((ObjString*)AS_OBJ(v))
+#define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
+
 
 std::ostream &operator<<(std::ostream &os, const Value &v);
 bool operator==(const Value l, const Value r);
@@ -73,7 +90,6 @@ public:
         return count;
     }
 };
-
 
 }
 
