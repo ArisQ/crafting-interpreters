@@ -70,7 +70,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         } else if(auto n = std::dynamic_pointer_cast<BoolValue>(e->value)) {
             writeOp(n->v?OP_TRUE:OP_FALSE);
         } else if(auto n = std::dynamic_pointer_cast<StringValue>(e->value)) {
-            writeConstant(OBJ_VAL(new ObjString(n->v.c_str(), n->v.size())));
+            writeConstant(OBJ_VAL(new ObjString(n->v)));
         }
     }
     void visitLogical(Logical *) {}

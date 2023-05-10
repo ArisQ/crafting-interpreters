@@ -2,6 +2,8 @@
 #define _VM_OBJECT_H_
 
 #include <cstddef>
+#include <cstdlib>
+#include <cstring>
 
 namespace vm {
 
@@ -22,14 +24,28 @@ struct ObjString {
     size_t length;
     const char *chars;
 
+    // new ObjString == copyString/allocateString
     ObjString(const char *c, size_t len) {
-        char *heapChars = ALLOCATE(char, len);
+        char *heapChars = ALLOCATE(char, len+1);
         memcpy(heapChars, c, len);
+        heapChars[len] = '\0';
         obj.type = OBJ_STRING;
         length = len;
         chars =heapChars;
     }
-    ObjString(const char *c): ObjString(c, strlen(c)) { }
+    // concatenate and takeString
+    ObjString(const ObjString *const a, const ObjString *const b) {
+        int len = a->length + b->length;
+        auto heapChars = ALLOCATE(char, len+1);
+        memcpy(heapChars, a->chars, a->length);
+        memcpy(heapChars + a->length, b->chars, b->length);
+        heapChars[len] = '\0';
+        obj.type = OBJ_STRING;
+        length = len;
+        chars = heapChars;
+    }
+    ObjString(const char *c) : ObjString(c, strlen(c)) {}
+    ObjString(const std::string &s) : ObjString(s.c_str(), s.size()) {} // used by compiler to convert from StringValue
     ~ObjString() {
         if (chars!=nullptr)
             free((void *)chars);
@@ -44,7 +60,20 @@ struct ObjString {
         o.chars = nullptr;
         o.length = 0;
     }
+
+    ObjString *operator+(const ObjString &r) {
+        return new ObjString(this, &r);
+    }
 };
+
+static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
+    os << '*';
+    switch (obj->type) {
+    case OBJ_STRING: os << '"' << ((const ObjString *)(obj))->chars << '"'; break;
+    default: os << "unknown object type " << obj->type; break;
+    }
+    return os;
+}
 
 }
 

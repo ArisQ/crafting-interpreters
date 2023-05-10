@@ -15,20 +15,20 @@ using namespace vm;
 
 int main(int argc, char *argv[])
 {
-    Obj obj;
-    ObjString str("xxx");
-    Obj *p;
-    cout<<sizeof(obj) <<endl;
-    cout<<sizeof(p) <<endl;
-    cout<<sizeof(str) <<endl;
-    p = &obj;
-    cout << *(uint64_t*)(&obj) <<endl;
-    cout << *(uint64_t*)(&str) <<endl;
-    ObjString str2("yyy");
-    ObjString str3(std::move(str));
-    cout << *(uint64_t*)(&str2) <<endl;
-    return 0;
-    cout << "lox implemented by c++!" << endl;
+    // Obj obj;
+    // ObjString str("xxx");
+    // Obj *p;
+    // cout<<sizeof(obj) <<endl;
+    // cout<<sizeof(p) <<endl;
+    // cout<<sizeof(str) <<endl;
+    // p = &obj;
+    // cout << *(uint64_t*)(&obj) <<endl;
+    // cout << *(uint64_t*)(&str) <<endl;
+    // ObjString str2("yyy");
+    // ObjString str3(std::move(str));
+    // cout << *(uint64_t*)(&str2) <<endl;
+    // return 0;
+    cout << "lox implemented in c++!" << endl;
 
     Lox lox;
     if (argc > 2)
