@@ -28,6 +28,8 @@ struct ObjString {
     size_t length;
     const char *chars;
 
+    uint32_t hash;
+
     ~ObjString() {
         if (chars!=nullptr) {
             fprintf(stderr, "free %s\n", chars);
@@ -63,6 +65,7 @@ private:
         obj.type = OBJ_STRING;
         length = len;
         chars =heapChars;
+        buildHash();
     }
     // concatenate and takeString
     ObjString(const ObjString *const a, const ObjString *const b) {
@@ -74,9 +77,19 @@ private:
         obj.type = OBJ_STRING;
         length = len;
         chars = heapChars;
+        buildHash();
     }
     ObjString(const char *c) : ObjString(c, strlen(c)) {}
     ObjString(const std::string &s) : ObjString(s.c_str(), s.size()) {} // used by compiler to convert from StringValue
+
+    void buildHash() {
+        // FNV-1a hash function
+        hash = 2166136261u;
+        for(int i=0;i <length;i++) {
+            hash ^= chars[i];
+            hash *= 16777619;
+        }
+    }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
