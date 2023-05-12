@@ -41,7 +41,7 @@ class Parser {
             if (get!=nullptr) {
                 return std::make_shared<Set>(get->object, get->name, value);
             }
-            throw RuntimeError(equal, "Invalid assignment target");
+            throw error(equal, "Invalid assignment target");
         }
         return expr;
     }

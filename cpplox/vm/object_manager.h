@@ -19,7 +19,14 @@ public:
         while(object != nullptr) {
             auto next = object->next;
             switch (object->type) {
-            case OBJ_STRING: delete (ObjString*)object; break; // 转成ObjString再删除，否则析构函数不会被调用。参考多态情况下的虚析构函数
+            case OBJ_STRING: {
+                // 转成ObjString再删除，否则析构函数不会被调用
+                // 参考多态情况下的虚析构函数
+                auto str = (ObjString *)object;
+                strings.remove(str);
+                delete str;
+                break;
+            }
             default: break;
             }
             object = next;

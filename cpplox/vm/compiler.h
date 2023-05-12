@@ -17,16 +17,36 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         std::cerr << "[line " << currentLine << "] "<< msg << std::endl;
     }
 
-    void writeConstant(const Value value) {
+    uint8_t makeConstant(const Value &value) {
         auto constant = chunk->addConstant(value);
         if (constant > UINT8_MAX) {
             error("Too many constants in on chunk.");
-            return;
+            return 0xFF;
         }
+        return constant;
+    }
+    // emitConstant
+    void writeConstant(const Value &value) {
+        auto constant = makeConstant(value);
         chunk->write(OP_CONSTANT, currentLine);
         chunk->write(constant, currentLine);
         // chunk->writeConstant(value, currentLine);
     }
+    uint8_t identifierConstant(const Token &name) {
+        return makeConstant(OBJ_VAL(chunk->objMgr.NewString(name.lexeme)));
+    }
+    void defineVariable(const uint8_t global) {
+        writeOp(OP_DEFINE_GLOBAL);
+        chunk->write(global, currentLine);
+    }
+
+    // variable getter/setter; namedVariable
+    void accessVariable(const OpCode op, const Token &name) {
+        auto arg = identifierConstant(name); // string的常量使用了不同的常量index
+        writeOp(op);
+        chunk->write(arg, currentLine);
+    }
+
     void writeOp(const OpCode op) {
         chunk->write(op, currentLine);
     }
@@ -34,8 +54,12 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         writeOp(op1);
         writeOp(op2);
     }
-
-    void visitAssign(Assign *) {}
+public:
+    void visitAssign(Assign *e) {
+        currentLine = e->name.line;
+        e->value->accept(this);
+        accessVariable(OP_SET_GLOBAL, e->name);
+    }
     void visitBinary(Binary *e) {
         currentLine = e->op.line;
         e->left->accept(this);
@@ -76,6 +100,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     }
     void visitLogical(Logical *) {}
     void visitUnary(Unary *e) {
+        currentLine = e->op.line;
         e->right->accept(this);
         switch(e->op.type) {
             case BANG: writeOp(OP_NOT); break;
@@ -83,7 +108,10 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
             default: error("compiler error visit non-binary expr.");
         }
     }
-    void visitVariable(Variable *) {}
+    void visitVariable(Variable *e) {
+        currentLine = e->name.line;
+        accessVariable(OP_GET_GLOBAL, e->name);
+    }
 
     void visitBlock(Block *) {}
     void visitExpression(Expression *s) {
@@ -98,9 +126,18 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         s->expression->accept(this);
         writeOp(OP_PRINT);
     }
-    void visitVar(Var *) {}
+    void visitVar(Var *s) {
+        currentLine = s->name.line;
+        if(s->initializer != nullptr) {
+            s->initializer->accept(this);
+        } else {
+            writeOp(OP_NIL);
+        }
+        auto var = identifierConstant(s->name);
+        defineVariable(var);
+    }
     void visitWhile(While *) {}
-public:
+
     Chunk compile(std::vector<std::shared_ptr<Stmt>> stmts) {
         Chunk k;
         chunk = &k;

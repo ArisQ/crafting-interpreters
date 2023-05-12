@@ -13,3 +13,14 @@
 "st" + "ri" + "ng";
 print 1+2;
 print 3+4;
+var x = 1+5;
+print x;
+x;
+var beverage = "cafe au lait";
+var breakfast = "beignets with " + beverage;
+print breakfast;
+x=1;
+print x;
+x=2;
+print x;
+// a*b = c+d;

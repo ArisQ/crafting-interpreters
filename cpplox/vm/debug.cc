@@ -41,8 +41,11 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     // unary
     case OP_NEGATE: return simpleInstruction(os, "OP_NEGATE", offset);
     case OP_NOT: return simpleInstruction(os, "OP_NOT", offset);
-    case OP_POP: return simpleInstruction(os, "OP_POP", offset);
     case OP_PRINT: return simpleInstruction(os, "OP_PRINT", offset);
+    case OP_POP: return simpleInstruction(os, "OP_POP", offset);
+    case OP_DEFINE_GLOBAL: return constantInstruction(os, "OP_DEFINE_GLOBAL", chunk, offset);
+    case OP_GET_GLOBAL: return constantInstruction(os, "OP_GET_GLOBAL", chunk, offset);
+    case OP_SET_GLOBAL: return constantInstruction(os, "OP_SET_GLOBAL", chunk, offset);
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;

@@ -28,9 +28,11 @@ class VM {
     Value stack[STACK_MAX];
     Value *stackTop;
     ObjMgr objMgr;
+    Table globals;
 
     inline const uint8_t readByte() { return *ip++; }
     inline const Value readConstant() { return chunk->getConstant(readByte()); }
+    inline const ObjString *readString() { return AS_STRING(readConstant()); }
 
     void resetStack() {}
     inline void push(Value value) { *stackTop++ = value; }
@@ -133,10 +135,39 @@ public:
             case OP_NOT:
                 push(BOOL_VAL(isFalsey(pop())));
                 break;
-            case OP_POP: pop(); break;
             case OP_PRINT:
                 std::cout << pop() << std::endl;
                 break;
+            case OP_POP: pop(); break;
+            case OP_DEFINE_GLOBAL: {
+                auto name = readString();
+                globals.set(name, peek(0));
+                pop();
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                auto name = readString();
+                Value v;
+                if(!globals.get(name, &v)) {
+                    runtimeError("Undefined variable '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(v);
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                auto name = readString();
+                Value v;
+                if(globals.set(name, peek(0))) {
+                    // delete会产生tombstone，采用get&set?
+                    // 大部分情况key都存在，不存在是异常，会返回runtime error
+                    // 因此直接set比较好
+                    globals.remove(name);
+                    runtimeError("Undefined variable '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
             case OP_RETURN:
                 return INTERPRET_OK;
             default:
