@@ -15,7 +15,7 @@ struct Entry {
 };
 
 struct Table {
-    static const double TABLE_MAX_LOAD = 0.75;
+    static constexpr double TABLE_MAX_LOAD = 0.75;
 
     size_t count;
     size_t capacity;
@@ -62,6 +62,27 @@ struct Table {
             auto entry = &from->entries[i];
             if (entry->key != nullptr) {
                 set(entry->key, entry->value);
+            }
+        }
+    }
+
+    const ObjString *findString(const ObjString *const key) {
+        if (count == 0) return nullptr;
+        for (auto index = key->hash % capacity; /**/; index = (index + 1) % capacity)
+        {
+            Entry *entry = &entries[index]; // entries + index;
+            auto k = entry->key;
+            if (k == nullptr) {
+                if(IS_NIL(entry->value)) { // find to end
+                    return nullptr;
+                }
+                // tombstone continue
+            } else if (
+                k->length == key->length &&
+                k->hash == key->hash &&
+                memcmp(k->chars, key->chars, k->length) == 0
+            ) {
+                return k;
             }
         }
     }

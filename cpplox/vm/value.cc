@@ -29,7 +29,7 @@ namespace vm
         case VAL_OBJ: {
             auto ls = AS_STRING(l);
             auto rs = AS_STRING(r);
-            return ls->length==rs->length && memcmp(ls->chars, rs->chars, ls->length) == 0;
+            return ls == rs; // strings are interned
         }
         default: break;
         }

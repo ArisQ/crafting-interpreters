@@ -8,5 +8,6 @@
 1>=2;
 3<=4;
 "abc" == "abc";
+"abc" == "xyz";
 "abc" + "xyz";
 "st" + "ri" + "ng";

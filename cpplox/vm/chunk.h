@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "value.h"
+#include "object_manager.h"
 
 namespace vm {
 
