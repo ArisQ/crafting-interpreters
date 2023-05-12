@@ -24,6 +24,9 @@ typedef enum {
     OP_SUBSTRACT,
     OP_MULTIPLY,
     OP_DIVIDE,
+
+    OP_POP,
+    OP_PRINT,
     OP_RETURN,
 } OpCode;
 

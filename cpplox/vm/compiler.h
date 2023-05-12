@@ -88,12 +88,16 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     void visitBlock(Block *) {}
     void visitExpression(Expression *s) {
         s->expression->accept(this);
+        writeOp(OP_POP);
     }
     void visitFunction(Function *) {}
     void visitReturn(Return *) {}
     void visitClass(Class *) {}
     void visitIf(If *) {}
-    void visitPrint(Print *) {}
+    void visitPrint(Print *s) {
+        s->expression->accept(this);
+        writeOp(OP_PRINT);
+    }
     void visitVar(Var *) {}
     void visitWhile(While *) {}
 public:

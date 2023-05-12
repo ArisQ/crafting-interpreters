@@ -133,13 +133,12 @@ public:
             case OP_NOT:
                 push(BOOL_VAL(isFalsey(pop())));
                 break;
-            case OP_RETURN: {
-                auto ret = pop();
-#ifdef DEBUG_TRACE_EXECUTION
-                std::cout << ret << std::endl;
-#endif
+            case OP_POP: pop(); break;
+            case OP_PRINT:
+                std::cout << pop() << std::endl;
+                break;
+            case OP_RETURN:
                 return INTERPRET_OK;
-            }
             default:
                 runtimeError("Invalid instruction %d", instruction);
                 return INTERPRET_RUNTIME_ERROR;
