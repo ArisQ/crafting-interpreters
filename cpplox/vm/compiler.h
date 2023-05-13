@@ -66,6 +66,21 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         writeOp(op1);
         writeOp(op2);
     }
+    size_t writeJump(const OpCode op) {
+        writeOp(op);
+        writeArg(0xFF);
+        writeArg(0xFF);
+        return chunk->getCount() - 2;
+    }
+    void patchJump(const size_t offset) {
+        // -2 to adjust for the bytecode for the jump offset itself
+        auto jump = chunk->getCount() - offset - 2;
+        if(jump>UINT16_MAX) {
+            error("Too much code to jump over.");
+        }
+        chunk->writeAt(offset, (jump >> 8) & 0xFF);
+        chunk->writeAt(offset + 1, jump & 0xFF);
+    }
 
     // locals
     Local locals[UINT8_MAX + 1];
@@ -189,7 +204,19 @@ public:
     void visitFunction(Function *) {}
     void visitReturn(Return *) {}
     void visitClass(Class *) {}
-    void visitIf(If *) {}
+    void visitIf(If *s) {
+        s->condition->accept(this);
+        auto thenJump = writeJump(OP_JUMP_IF_ELSE);
+        writeOp(OP_POP); // OP_JUMP_IF_ELSE不pop condition结果，显式的pop
+        s->thenBranch->accept(this);
+        auto elseJump = writeJump(OP_JUMP);
+        patchJump(thenJump);
+        writeOp(OP_POP);
+        if(s->elseBranch) {
+            s->elseBranch->accept(this);
+        }
+        patchJump(elseJump);
+    }
     void visitPrint(Print *s) {
         s->expression->accept(this);
         writeOp(OP_PRINT);

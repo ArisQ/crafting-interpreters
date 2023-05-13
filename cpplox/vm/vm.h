@@ -31,6 +31,7 @@ class VM {
     Table globals;
 
     inline const uint8_t readByte() { return *ip++; }
+    inline const uint16_t readShort() { return (readByte() << 8) + readByte(); }
     inline const Value readConstant() { return chunk->getConstant(readByte()); }
     inline const ObjString *readString() { return AS_STRING(readConstant()); }
 
@@ -174,6 +175,18 @@ public:
             }
             case OP_SET_LOCAL: {
                 stack[readByte()] = peek(0);
+                break;
+            }
+            case OP_JUMP_IF_ELSE: {
+                uint16_t offset = readShort();
+                if (isFalsey(peek(0))) { // 不pop
+                    ip += offset;
+                }
+                break;
+            }
+            case OP_JUMP: {
+                uint16_t offset = readShort();
+                ip += offset;
                 break;
             }
             case OP_RETURN:

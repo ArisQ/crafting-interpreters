@@ -32,6 +32,8 @@ typedef enum {
     OP_SET_GLOBAL,
     OP_GET_LOCAL,
     OP_SET_LOCAL,
+    OP_JUMP_IF_ELSE,
+    OP_JUMP,
     OP_RETURN,
 } OpCode;
 
@@ -93,6 +95,9 @@ public:
         lines[count] = line;
         count++;
     }
+    void writeAt(size_t offset, uint8_t byte) {
+        code[offset] = byte;
+    }
     inline const uint8_t get(const size_t offset) const {
         return code[offset];
     }
@@ -112,6 +117,8 @@ public:
         write(OP_CONSTANT, line);
         write(addConstant(value), line);
     }
+
+    size_t getCount() { return count; }
 
     friend std::ostream &operator<<(std::ostream &os, const Chunk &chunk);
     friend class VM;

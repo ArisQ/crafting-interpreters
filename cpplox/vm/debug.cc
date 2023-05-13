@@ -13,6 +13,17 @@ size_t byteInstruction(std::ostream &os, const char *name, const Chunk &chunk, s
        << std::setfill(' ') << std::setw(4) << uint(slot) << std::endl;
     return offset + 2;
 }
+size_t jumpInstruction(std::ostream &os, const char *name, const Chunk &chunk, size_t offset, int sign = 1) {
+    uint8_t high = chunk.get(offset + 1);
+    uint8_t low = chunk.get(offset + 2);
+    uint16_t jump = (high << 8) + low;
+    os << std::setfill(' ') << std::setw(16) << std::left << name
+       << std::right
+       << std::setfill('0') << std::setw(4) << uint(offset) << " -> "
+       << std::setfill('0') << std::setw(4) << uint(offset + 3 + sign * jump)
+       << std::endl;
+    return offset + 3;
+}
 size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chunk, size_t offset)
 {
     uint8_t constant = chunk.get(offset + 1);
@@ -54,6 +65,8 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_SET_GLOBAL: return constantInstruction(os, "OP_SET_GLOBAL", chunk, offset);
     case OP_GET_LOCAL: return byteInstruction(os, "OP_GET_LOCAL", chunk, offset);
     case OP_SET_LOCAL: return byteInstruction(os, "OP_SET_LOCAL", chunk, offset);
+    case OP_JUMP_IF_ELSE: return jumpInstruction(os, "OP_JUMP_IF_ELSE", chunk, offset);
+    case OP_JUMP: return jumpInstruction(os, "OP_JUMP", chunk, offset);
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;
