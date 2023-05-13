@@ -175,7 +175,32 @@ public:
             writeConstant(OBJ_VAL(chunk->objMgr.NewString(n->v))); // 常量的Object由chunk管理（属于代码段）
         }
     }
-    void visitLogical(Logical *) {}
+    void visitLogical(Logical *e) {
+        currentLine = e->op.line;
+        e->left->accept(this);
+        switch (e->op.type)
+        {
+        case AND: {
+            int endJump = writeJump(OP_JUMP_IF_ELSE);
+            writeOp(OP_POP);
+            e->right->accept(this);
+            patchJump(endJump);
+            break;
+        }
+        case OR: {
+            int elseJump = writeJump(OP_JUMP_IF_ELSE);
+            int endJump = writeJump(OP_JUMP);
+            patchJump(elseJump);
+            writeOp(OP_POP);
+            e->right->accept(this);
+            patchJump(endJump);
+            break;
+        }
+        default:
+            error("invalid logical op");
+            break;
+        }
+    }
     void visitUnary(Unary *e) {
         currentLine = e->op.line;
         e->right->accept(this);

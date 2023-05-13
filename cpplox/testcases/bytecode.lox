@@ -45,3 +45,18 @@ print x;
 }
 var z="global z";
 print z;
+
+var x = 3;
+if(x>2) print x;
+if(x>2) print "greater than 2";
+else print "less equal than 2";
+print x;
+
+true and true;
+true and false;
+false and true;
+false and false;
+true or true;
+true or false;
+false or true;
+false or false;
