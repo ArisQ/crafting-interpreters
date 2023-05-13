@@ -7,6 +7,14 @@
 #include "chunk.h"
 
 namespace vm {
+
+struct Local {
+    Token name;
+    int depth;
+    Local() : name(Token(TOKEN_EOF, "", -1, nullptr)),
+              depth(-1) {}
+};
+
 class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     Chunk *chunk;
     int currentLine = 0; // 不准确
@@ -28,25 +36,29 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     // emitConstant
     void writeConstant(const Value &value) {
         auto constant = makeConstant(value);
-        chunk->write(OP_CONSTANT, currentLine);
-        chunk->write(constant, currentLine);
+        writeOp(OP_CONSTANT);
+        writeArg(constant);
         // chunk->writeConstant(value, currentLine);
     }
     uint8_t identifierConstant(const Token &name) {
         return makeConstant(OBJ_VAL(chunk->objMgr.NewString(name.lexeme)));
     }
-    void defineVariable(const uint8_t global) {
-        writeOp(OP_DEFINE_GLOBAL);
-        chunk->write(global, currentLine);
-    }
 
     // variable getter/setter; namedVariable
-    void accessVariable(const OpCode op, const Token &name) {
-        auto arg = identifierConstant(name); // string的常量使用了不同的常量index
+    void accessVariable(const Token &name, const bool set = false) {
+        OpCode op = set ? OP_SET_LOCAL : OP_GET_LOCAL;
+        auto arg = resolveLocal(name);
+        if (arg == -1) {
+            op = set ? OP_SET_GLOBAL : OP_GET_GLOBAL;
+            arg = identifierConstant(name); // NOTE: 同一global的名称string占用了多个常量index
+        }
         writeOp(op);
-        chunk->write(arg, currentLine);
+        writeArg(arg);
     }
 
+    void writeArg(const uint8_t arg) {
+        chunk->write(arg, currentLine);
+    }
     void writeOp(const OpCode op) {
         chunk->write(op, currentLine);
     }
@@ -54,11 +66,61 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         writeOp(op1);
         writeOp(op2);
     }
+
+    // locals
+    Local locals[UINT8_MAX + 1];
+    size_t localCount = 0;
+    int scopeDepth = 0;
+
+    void beginScope() { ++scopeDepth; }
+    void endScope() {
+        --scopeDepth;
+        while (localCount > 0 && locals[localCount - 1].depth > scopeDepth) {
+            writeOp(OP_POP);
+            --localCount;
+        }
+    }
+    void addLocal(const Token &name) {
+        // for (size_t i = localCount - 1; i >= 0; i--) { // unsigned>=0
+        for (size_t i = localCount; i-- > 0;) {
+            auto local = locals[i];
+            if (local.depth != -1 && local.depth < scopeDepth) {
+                break;
+            }
+            if (name.lexeme == local.name.lexeme) { // identifiersEqual
+                error("Already variable with this name in this scope.");
+                return;
+            }
+        }
+        if (localCount > UINT8_MAX) {
+            error("Too many local variable in function.");
+            return;
+        }
+        auto &local = locals[localCount++];
+        local.name = name;
+        local.depth = -1;
+    }
+    void markInitialized() {
+        locals[localCount-1].depth = scopeDepth;
+    }
+    size_t resolveLocal(const Token &name) {
+        for (size_t i = localCount; i-- > 0;) {
+            auto &local = locals[i];
+            if (name.lexeme == local.name.lexeme) {
+                if (local.depth == -1) {
+                    error("Can't read local variable in its own initializer.");
+                }
+                return i;
+            }
+        }
+        return -1;
+    }
+
 public:
     void visitAssign(Assign *e) {
         currentLine = e->name.line;
         e->value->accept(this);
-        accessVariable(OP_SET_GLOBAL, e->name);
+        accessVariable(e->name, true);
     }
     void visitBinary(Binary *e) {
         currentLine = e->op.line;
@@ -110,10 +172,16 @@ public:
     }
     void visitVariable(Variable *e) {
         currentLine = e->name.line;
-        accessVariable(OP_GET_GLOBAL, e->name);
+        accessVariable(e->name);
     }
 
-    void visitBlock(Block *) {}
+    void visitBlock(Block *s) {
+        beginScope();
+        for(const auto &stmt: s->statements) {
+            stmt->accept(this);
+        }
+        endScope();
+    }
     void visitExpression(Expression *s) {
         s->expression->accept(this);
         writeOp(OP_POP);
@@ -128,13 +196,27 @@ public:
     }
     void visitVar(Var *s) {
         currentLine = s->name.line;
+
+        if (scopeDepth > 0) {
+            // declareVariable
+            addLocal(s->name);
+        }
+
         if(s->initializer != nullptr) {
             s->initializer->accept(this);
         } else {
             writeOp(OP_NIL);
         }
+
+        if (scopeDepth > 0) {
+            markInitialized();
+            return;
+        }
+
+        // defineVariable/global
         auto var = identifierConstant(s->name);
-        defineVariable(var);
+        writeOp(OP_DEFINE_GLOBAL);
+        writeArg(var);
     }
     void visitWhile(While *) {}
 

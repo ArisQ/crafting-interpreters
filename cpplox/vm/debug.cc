@@ -7,10 +7,16 @@ size_t simpleInstruction(std::ostream &os, const char *name, size_t offset)
     os << name << std::endl;
     return offset + 1;
 }
+size_t byteInstruction(std::ostream &os, const char *name, const Chunk &chunk, size_t offset) {
+    uint8_t slot = chunk.get(offset + 1);
+    os << std::setfill(' ') << std::setw(16) << std::left << name
+       << std::setfill(' ') << std::setw(4) << uint(slot) << std::endl;
+    return offset + 2;
+}
 size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chunk, size_t offset)
 {
     uint8_t constant = chunk.get(offset + 1);
-    os << name << " "
+    os << std::setfill(' ') << std::setw(16) << std::left << name
        << std::setfill(' ') << std::setw(4) << uint(constant) << " '"
        << chunk.getConstant(constant) << '\'' << std::endl;
     return offset + 2;
@@ -18,7 +24,7 @@ size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chun
 
 size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offset)
 {
-    os << std::setfill('0') << std::setw(4) << offset << ' ';
+    os << std::setfill('0') << std::setw(4) << std::right << offset << ' ';
     if(offset>0 && chunk.getLine(offset)==chunk.getLine(offset-1)) {
         os << "   | ";
     } else {
@@ -46,6 +52,8 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_DEFINE_GLOBAL: return constantInstruction(os, "OP_DEFINE_GLOBAL", chunk, offset);
     case OP_GET_GLOBAL: return constantInstruction(os, "OP_GET_GLOBAL", chunk, offset);
     case OP_SET_GLOBAL: return constantInstruction(os, "OP_SET_GLOBAL", chunk, offset);
+    case OP_GET_LOCAL: return byteInstruction(os, "OP_GET_LOCAL", chunk, offset);
+    case OP_SET_LOCAL: return byteInstruction(os, "OP_SET_LOCAL", chunk, offset);
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;

@@ -24,3 +24,24 @@ print x;
 x=2;
 print x;
 // a*b = c+d;
+
+{
+    var x = 1;
+    print x;
+    var y = 2;
+    print x;
+    print y;
+    {
+        var a = 3;
+        print a;
+        var b = 4;
+        // var x = x;
+        y=10;
+        print a;
+        print b;
+        print x;
+        print y;
+    }
+}
+var z="global z";
+print z;

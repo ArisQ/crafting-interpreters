@@ -168,6 +168,14 @@ public:
                 }
                 break;
             }
+            case OP_GET_LOCAL: {
+                push(stack[readByte()]);
+                break;
+            }
+            case OP_SET_LOCAL: {
+                stack[readByte()] = peek(0);
+                break;
+            }
             case OP_RETURN:
                 return INTERPRET_OK;
             default:
