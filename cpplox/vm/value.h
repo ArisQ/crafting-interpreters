@@ -41,8 +41,10 @@ static inline bool isObjType(Value value, ObjType type) {
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
 #define IS_STRING(v) isObjType(v, OBJ_STRING)
+#define IS_FUNCTION(v) isObjType(v, OBJ_FUNCTION)
 #define AS_STRING(v) ((ObjString*)AS_OBJ(v))
 #define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
+#define AS_FUNCTION(v) ((ObjFunction*)AS_OBJ(v))
 
 
 std::ostream &operator<<(std::ostream &os, const Value &v);

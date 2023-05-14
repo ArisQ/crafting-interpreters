@@ -4,6 +4,7 @@
 #include <cstdarg>
 
 #include "chunk.h"
+#include "object_manager.h"
 #include "debug.h"
 
 #define DEBUG_TRACE_EXECUTION
@@ -20,22 +21,34 @@ typedef enum {
     INTERPRET_RUNTIME_ERROR,
 } InterpretResult;
 
-static const size_t STACK_MAX = 256;
+static const size_t FRAMES_MAX = 64;
+static const size_t STACK_MAX = (FRAMES_MAX * (UINT8_MAX + 1));
+
+struct CallFrame {
+    ObjFunction *function;
+    uint8_t *ip;
+    Value *slots; // pointer to stack frame base
+};
 
 class VM {
-    const Chunk *chunk;
-    uint8_t *ip; // instruction pointer or program counter
+    CallFrame frames[FRAMES_MAX];
+    int frameCount;
+    CallFrame *frame;
+
     Value stack[STACK_MAX];
     Value *stackTop;
-    ObjMgr objMgr;
+    ObjMgr &objMgr;
     Table globals;
 
-    inline const uint8_t readByte() { return *ip++; }
+    inline const uint8_t readByte() { return *frame->ip++; }
     inline const uint16_t readShort() { return (readByte() << 8) + readByte(); }
-    inline const Value readConstant() { return chunk->getConstant(readByte()); }
+    inline const Value readConstant() { return frame->function->chunk->getConstant(readByte()); }
     inline const ObjString *readString() { return AS_STRING(readConstant()); }
 
-    void resetStack() {}
+    void resetStack() {
+        stackTop = stack;
+        frameCount = 0;
+    }
     inline void push(Value value) { *stackTop++ = value; }
     inline Value pop() { return *--stackTop; }
     inline Value peek(int distance) { return stackTop[-1-distance]; }
@@ -50,21 +63,56 @@ class VM {
         va_end(args);
 
         fputs("\n", stderr);
-        size_t instruction = ip - chunk->code -1;
-        int line = chunk->lines[instruction];
-        fprintf(stderr, "[line %d] in script\n", line);
+        for (int i = frameCount - 1; i >= 0; --i) {
+            auto frame = &frames[i];
+            auto function = frame->function;
+            auto instruction = frame->ip - frame->function->chunk->code -1;
+            fprintf(stderr, "[line %d] in ", function->chunk->lines[instruction]);
+            if(function->name==nullptr) {
+                fprintf(stderr, "scripts\n");
+            } else {
+                fprintf(stderr, "%s()\n",function->name->chars);
+            }
+        }
         resetStack();
     }
 
     static inline bool isFalsey(const Value value) {
         return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
     }
+
+    bool callValue(Value callee, int argCount) {
+        if(IS_OBJ(callee)) {
+            switch (OBJ_TYPE(callee)) {
+            case OBJ_FUNCTION: return call(AS_FUNCTION(callee), argCount);
+            default: break;
+            }
+        }
+        runtimeError("Can only call functions and classes.");
+        return false;
+    }
+    bool call(ObjFunction *function, int argCount) {
+        if(argCount!=function->arity) {
+            runtimeError("Expect %d arguments but got %d.", function->arity, argCount);
+            return false;
+        }
+        if(frameCount==FRAMES_MAX) {
+            runtimeError("Stack overflow.");
+            return false;
+        }
+        frame = &frames[frameCount++];
+        frame->function = function;
+        frame->ip = function->chunk->code;
+        frame->slots = stackTop - argCount - 1;
+        return true;
+    }
 public:
-    // VM() { stackTop = stack; }
-    InterpretResult interpret(const Chunk *k) {
-        chunk = k;
-        ip = k->code;
-        stackTop = stack;
+    VM(ObjMgr &objMgr) : objMgr(objMgr) { stackTop = stack; }
+    InterpretResult interpret(ObjFunction *function) {
+        resetStack();
+        auto objFunc = OBJ_VAL(function);
+        push(objFunc);
+        callValue(objFunc, 0);
         return run();
     }
     InterpretResult run() {
@@ -87,7 +135,7 @@ public:
                 std::cout << "[ " << *slot << " ]";
             }
             std::cout << std::endl;
-            disassembleInstruction(std::cout, *chunk, (size_t)(ip - chunk->code));
+            disassembleInstruction(std::cout, *frame->function->chunk, (size_t)(frame->ip - frame->function->chunk->code));
 #endif
             uint8_t instruction;
             switch (instruction=readByte()) {
@@ -170,32 +218,49 @@ public:
                 break;
             }
             case OP_GET_LOCAL: {
-                push(stack[readByte()]);
+                push(frame->slots[readByte()]);
                 break;
             }
             case OP_SET_LOCAL: {
-                stack[readByte()] = peek(0);
+                frame->slots[readByte()] = peek(0);
                 break;
             }
             case OP_JUMP_IF_ELSE: {
                 uint16_t offset = readShort();
                 if (isFalsey(peek(0))) { // 不pop
-                    ip += offset;
+                    frame->ip += offset;
                 }
                 break;
             }
             case OP_JUMP: {
                 uint16_t offset = readShort();
-                ip += offset;
+                frame->ip += offset;
                 break;
             }
             case OP_LOOP: {
                 uint16_t offset = readShort();
-                ip -= offset;
+                frame->ip -= offset;
                 break;
             }
-            case OP_RETURN:
-                return INTERPRET_OK;
+            case OP_CALL: {
+                auto argCount = readByte();
+                if(!callValue(peek(argCount), argCount)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_RETURN: {
+                auto result = pop();
+                --frameCount;
+                if(frameCount == 0 ) {
+                    pop();
+                    return INTERPRET_OK;
+                }
+                stackTop = frame->slots;
+                push(result);
+                frame = &frames[frameCount - 1];
+                break;
+            }
             default:
                 runtimeError("Invalid instruction %d", instruction);
                 return INTERPRET_RUNTIME_ERROR;

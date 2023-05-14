@@ -49,6 +49,11 @@ void Lox::runtimeError(RuntimeError err) {
     hasRuntimeError = true;
 }
 
+int64_t fib(int n) {
+    if(n<2) return n;
+    return fib(n-1) + fib(n-2);
+}
+
 void Lox::run(const string &s)
 {
     // cout << s << endl;
@@ -67,12 +72,16 @@ void Lox::run(const string &s)
 
 #ifdef INTERPRET_WITH_VM
     try {
-        vm::Compiler compiler;
-        const vm::Chunk chunk = compiler.compile(stmts);
+        vm::ObjMgr objMgr;
+        vm::Compiler compiler(objMgr);
+        const auto func = compiler.compile(stmts);
         if(compiler.hasError()) {
             return;
         }
-        auto result = vm.interpret(&chunk);
+        vm::VM vm(objMgr);
+        int n = 40;
+        std::cout << "c fib " << n << " = " << fib(37) << std::endl;
+        auto result = vm.interpret(func);
         std::cout << "vm result " << result << std::endl;
     } catch (RuntimeError err) {
         runtimeError(err);

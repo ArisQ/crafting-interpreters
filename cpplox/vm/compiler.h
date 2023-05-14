@@ -1,12 +1,20 @@
 #ifndef _VM_COMPILER_H_
 #define _VM_COMPILER_H_
 
+#define DEBUG_PRINT_CODE
+
 #include "../stmt.h"
 #include "../expr.h"
 
 #include "chunk.h"
+#include "object_manager.h"
 
 namespace vm {
+
+typedef enum {
+    TYPE_FUNCTION,
+    TYPE_SCRIPT,
+} FunctionType;
 
 struct Local {
     Token name;
@@ -16,7 +24,12 @@ struct Local {
 };
 
 class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
+    ObjMgr &objMgr;
+
+    ObjFunction *function;
+    FunctionType type;
     Chunk *chunk;
+
     int currentLine = 0; // 不准确
 
     bool _hasError = false;
@@ -41,7 +54,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         // chunk->writeConstant(value, currentLine);
     }
     uint8_t identifierConstant(const Token &name) {
-        return makeConstant(OBJ_VAL(chunk->objMgr.NewString(name.lexeme)));
+        return makeConstant(OBJ_VAL(objMgr.NewString(name.lexeme)));
     }
 
     // variable getter/setter; namedVariable
@@ -125,6 +138,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         local.depth = -1;
     }
     void markInitialized() {
+        // local, return if scopeDepth==0
         locals[localCount-1].depth = scopeDepth;
     }
     size_t resolveLocal(const Token &name) {
@@ -140,6 +154,23 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         return -1;
     }
 
+    // build function
+    ObjFunction *buildFunction(Function *f) {
+        beginScope();
+        // parameter list
+        if(f->params.size()>255) {
+            error("Can't have more than 255 parameters.");
+        }
+        function->arity = f->params.size();
+        for (const auto &p : f->params) {
+            addLocal(p);
+            markInitialized();
+        }
+        //body
+        compile(f->body);
+        endScope();
+        return function;
+    }
 public:
     void visitAssign(Assign *e) {
         currentLine = e->name.line;
@@ -164,7 +195,18 @@ public:
             default: error("compiler error visit non-binary expr.");
         }
     }
-    void visitCall(Call *) {}
+    void visitCall(Call *e) {
+        e->callee->accept(this);
+        auto argCount = e->arguments.size();
+        if(argCount>=255) {
+            error("Can't have more than 255 arguments.");
+        }
+        for (const auto &arg : e->arguments) {
+            arg->accept(this);
+        }
+        writeOp(OP_CALL);
+        writeArg(argCount);
+    }
     void visitGet(Get *) {}
     void visitSet(Set *) {}
     void visitThis(This *) {}
@@ -181,7 +223,7 @@ public:
             writeOp(n->v?OP_TRUE:OP_FALSE);
         } else if(auto n = std::dynamic_pointer_cast<StringValue>(e->value)) {
             // writeConstant(OBJ_VAL(new ObjString(n->v)));
-            writeConstant(OBJ_VAL(chunk->objMgr.NewString(n->v))); // 常量的Object由chunk管理（属于代码段）
+            writeConstant(OBJ_VAL(objMgr.NewString(n->v))); // 常量的Object由chunk管理（属于代码段）
         }
     }
     void visitLogical(Logical *e) {
@@ -235,8 +277,38 @@ public:
         s->expression->accept(this);
         writeOp(OP_POP);
     }
-    void visitFunction(Function *) {}
-    void visitReturn(Return *) {}
+    void visitFunction(Function *s) {
+        currentLine = s->name.line;
+        uint8_t var; //global var
+        if (scopeDepth > 0) { // local
+            addLocal(s->name); // declareVariable
+            markInitialized();
+        } else {
+            var = identifierConstant(s->name);
+        }
+
+        // function(TYPE_FUNCTION);
+        Compiler compiler(objMgr, TYPE_FUNCTION, s->name);
+        compiler.currentLine = currentLine;
+        auto f = compiler.buildFunction(s);
+        writeConstant(OBJ_VAL(f));
+
+        if (scopeDepth == 0) { // global
+            writeOp(OP_DEFINE_GLOBAL);
+            writeArg(var);
+        }
+    }
+    void visitReturn(Return *s) {
+        if (type == TYPE_SCRIPT) {
+            error("Can't return from top-level code.");
+        }
+        if(s->value != nullptr) {
+            s->value->accept(this);
+        } else {
+            writeOp(OP_NIL);
+        }
+        writeOp(OP_RETURN);
+    }
     void visitClass(Class *) {}
     void visitIf(If *s) {
         s->condition->accept(this);
@@ -290,15 +362,31 @@ public:
         writeOp(OP_POP);
     }
 
-    Chunk compile(std::vector<std::shared_ptr<Stmt>> stmts) {
-        Chunk k;
-        chunk = &k;
+    Compiler(ObjMgr &objMgr, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : objMgr(objMgr)
+    {
+        function = objMgr.NewFunction();
+        type = type;
+        if(type!=TYPE_SCRIPT) {
+            function->name = objMgr.NewString(token.lexeme);
+        }
+        chunk = function->chunk;
+
+        auto local = locals[localCount++];
+        local.depth = 0;
+        local.name = token;
+    }
+
+    ObjFunction *compile(std::vector<std::shared_ptr<Stmt>> stmts) {
         for(const auto stmt: stmts) {
             stmt->accept(this);
         }
         currentLine++;
+        writeOp(OP_NIL);
         writeOp(OP_RETURN);
-        return k;
+#ifdef DEBUG_PRINT_CODE
+        std::cout << ChunkDebugName(function->name == nullptr ? "<script>" : function->name->chars) << *chunk << std::endl;
+#endif
+        return function;
     }
 
     inline bool hasError() { return _hasError; }

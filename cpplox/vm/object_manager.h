@@ -27,6 +27,11 @@ public:
                 delete str;
                 break;
             }
+            case OBJ_FUNCTION: {
+                auto func = (ObjFunction *)object;
+                delete func;
+                break;
+            }
             default: break;
             }
             object = next;
@@ -53,6 +58,11 @@ public:
     }
     const ObjString *NewString(const std::string &s) {
         return internedString(new ObjString(s));
+    }
+    ObjFunction *NewFunction() {
+        auto func = new ObjFunction();
+        INSERT_OBJ(func);
+        return func;
     }
 #undef INSERT_OBJ
 };

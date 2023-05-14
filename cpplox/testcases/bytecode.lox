@@ -72,3 +72,13 @@ while(x<10) {
 for(var x = 1; x<10; x=x+1) {
     print x;
 }
+
+fun x() {
+    print 1;
+}
+x();
+fun fib(n) {
+    if(n<2) return n;
+    return fib(n-1)+fib(n-2);
+}
+print fib(37); //jlox fib(40) => 72s

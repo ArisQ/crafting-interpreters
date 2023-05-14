@@ -21,9 +21,7 @@ class Lox
     void error(Token token, std::string message);
     void info(int line, std::string message);
 
-#ifdef INTERPRET_WITH_VM
-    vm::VM vm;
-#else
+#ifndef INTERPRET_WITH_VM
     Interpreter interpreter;
 #endif
     bool hasRuntimeError = false;

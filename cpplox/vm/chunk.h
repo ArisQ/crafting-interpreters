@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "value.h"
-#include "object_manager.h"
 
 namespace vm {
 
@@ -35,6 +34,7 @@ typedef enum {
     OP_JUMP_IF_ELSE,
     OP_JUMP,
     OP_LOOP,
+    OP_CALL,
     OP_RETURN,
 } OpCode;
 
@@ -67,8 +67,6 @@ class Chunk {
             throw std::runtime_error("reallocate lines failed.");
     }
 public:
-    ObjMgr objMgr;
-
     Chunk() : count(0), capacity(0), code(nullptr), lines(nullptr) {}
     Chunk(const Chunk &) = delete;
     Chunk(Chunk &&c) : count(c.count),

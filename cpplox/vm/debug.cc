@@ -68,6 +68,7 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_JUMP_IF_ELSE: return jumpInstruction(os, "OP_JUMP_IF_ELSE", chunk, offset);
     case OP_JUMP: return jumpInstruction(os, "OP_JUMP", chunk, offset);
     case OP_LOOP: return jumpInstruction(os, "OP_LOOP", chunk, offset, -1);
+    case OP_CALL: return byteInstruction(os, "OP_CALL", chunk, offset);
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;

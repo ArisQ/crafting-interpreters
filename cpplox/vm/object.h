@@ -12,11 +12,14 @@ namespace vm {
 typedef enum {
     OBJ_UNDEFINED,
     OBJ_STRING,
+    OBJ_FUNCTION,
 } ObjType;
 
 struct Obj {
     ObjType type;
     Obj *next;
+
+    Obj(ObjType t) : type(t), next(nullptr) {}
 };
 
 #define OBJ_TYPE(v) (AS_OBJ(v)->type)
@@ -58,23 +61,21 @@ private:
     // 私有constructor，只有ObjMgr能够构造
 
     // new ObjString == copyString/allocateString
-    ObjString(const char *c, size_t len) {
+    ObjString(const char *c, size_t len) : obj(OBJ_STRING) {
         char *heapChars = ALLOCATE(char, len+1);
         memcpy(heapChars, c, len);
         heapChars[len] = '\0';
-        obj.type = OBJ_STRING;
         length = len;
         chars =heapChars;
         buildHash();
     }
     // concatenate and takeString
-    ObjString(const ObjString *const a, const ObjString *const b) {
+    ObjString(const ObjString *const a, const ObjString *const b) : obj(OBJ_STRING) {
         int len = a->length + b->length;
         auto heapChars = ALLOCATE(char, len+1);
         memcpy(heapChars, a->chars, a->length);
         memcpy(heapChars + a->length, b->chars, b->length);
         heapChars[len] = '\0';
-        obj.type = OBJ_STRING;
         length = len;
         chars = heapChars;
         buildHash();
@@ -92,10 +93,32 @@ private:
     }
 };
 
+class Chunk;
+struct ObjFunction {
+    Obj obj;
+    int arity;
+    Chunk *chunk;
+    const ObjString *name;
+
+    ~ObjFunction();
+private:
+    ObjFunction();
+    friend class ObjMgr;
+};
+
 static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
     os << '*';
     switch (obj->type) {
     case OBJ_STRING: os << '"' << ((const ObjString *)(obj))->chars << '"'; break;
+    case OBJ_FUNCTION: {
+        auto func = (const ObjFunction *)obj;
+        if (func->name==nullptr){
+            os << "<script>";
+        } else {
+            os << "<fn " << func->name->chars << ">";
+        }
+        break;
+    }
     default: os << "unknown object type " << obj->type; break;
     }
     return os;
