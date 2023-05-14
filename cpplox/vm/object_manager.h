@@ -32,6 +32,11 @@ public:
                 delete func;
                 break;
             }
+            case OBJ_NATIVE: {
+                auto native = (ObjNative *)object;
+                delete native;
+                break;
+            }
             default: break;
             }
             object = next;
@@ -63,6 +68,11 @@ public:
         auto func = new ObjFunction();
         INSERT_OBJ(func);
         return func;
+    }
+    ObjNative *NewNative(NativeFn function) {
+        auto native = new ObjNative(function);
+        INSERT_OBJ(native);
+        return native;
     }
 #undef INSERT_OBJ
 };

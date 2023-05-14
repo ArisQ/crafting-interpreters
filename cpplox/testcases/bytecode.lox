@@ -77,8 +77,15 @@ fun x() {
     print 1;
 }
 x();
+var start = clock();
 fun fib(n) {
     if(n<2) return n;
     return fib(n-1)+fib(n-2);
 }
-print fib(37); //jlox fib(40) => 72s
+var n = 36;
+print fib(n); //jlox fib(40) => 72s
+var end = clock();
+print "clox fib ";
+print n;
+print "cost";
+print end - start;

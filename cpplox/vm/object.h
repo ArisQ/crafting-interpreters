@@ -13,6 +13,7 @@ typedef enum {
     OBJ_UNDEFINED,
     OBJ_STRING,
     OBJ_FUNCTION,
+    OBJ_NATIVE,
 } ObjType;
 
 struct Obj {
@@ -106,6 +107,14 @@ private:
     friend class ObjMgr;
 };
 
+struct Value;
+typedef Value (*NativeFn) (int argCount, Value *args);
+struct ObjNative {
+    Obj obj;
+    NativeFn function;
+    ObjNative(NativeFn function) : obj(OBJ_NATIVE), function(function) {}
+};
+
 static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
     os << '*';
     switch (obj->type) {
@@ -117,6 +126,10 @@ static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
         } else {
             os << "<fn " << func->name->chars << ">";
         }
+        break;
+    }
+    case OBJ_NATIVE: {
+        os << "<native fn>";
         break;
     }
     default: os << "unknown object type " << obj->type; break;

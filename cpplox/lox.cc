@@ -79,8 +79,11 @@ void Lox::run(const string &s)
             return;
         }
         vm::VM vm(objMgr);
-        int n = 40;
-        std::cout << "c fib " << n << " = " << fib(37) << std::endl;
+        int n = 36;
+        auto start = vm::clock();
+        auto f = fib(n);
+        auto end = vm::clock();
+        std::cout << "c fib " << n << " = " << f << " cost " << end-start << std::endl;
         auto result = vm.interpret(func);
         std::cout << "vm result " << result << std::endl;
     } catch (RuntimeError err) {

@@ -2,10 +2,12 @@
 #define _VM_H_
 
 #include <cstdarg>
+#include <chrono>
 
 #include "chunk.h"
 #include "object_manager.h"
 #include "debug.h"
+#include "clock.h"
 
 #define DEBUG_TRACE_EXECUTION
 
@@ -85,6 +87,13 @@ class VM {
         if(IS_OBJ(callee)) {
             switch (OBJ_TYPE(callee)) {
             case OBJ_FUNCTION: return call(AS_FUNCTION(callee), argCount);
+            case OBJ_NATIVE: {
+                auto native = AS_NATIVE(callee);
+                auto result = native(argCount, stackTop - argCount);
+                stackTop -= (argCount+1);
+                push(result);
+                return true;
+            }
             default: break;
             }
         }
@@ -107,7 +116,22 @@ class VM {
         return true;
     }
 public:
-    VM(ObjMgr &objMgr) : objMgr(objMgr) { stackTop = stack; }
+    static Value clockNative(int argCount, Value *args) {
+        return NUMBER_VAL(clock());
+    }
+    VM(ObjMgr &objMgr) : objMgr(objMgr) {
+        stackTop = stack;
+        defineNative("clock", clockNative);
+    }
+    void defineNative(const char *name, NativeFn fn) {
+        // globals.set(objMgr.NewString(name), OBJ_VAL(objMgr.NewNative(fn)));
+        // for gc sake
+        push(OBJ_VAL(objMgr.NewString(name)));
+        push(OBJ_VAL(objMgr.NewNative(fn)));
+        globals.set(AS_STRING(stack[0]), stack[1]);
+        pop();
+        pop();
+    }
     InterpretResult interpret(ObjFunction *function) {
         resetStack();
         auto objFunc = OBJ_VAL(function);

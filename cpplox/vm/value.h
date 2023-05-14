@@ -14,14 +14,14 @@ typedef enum {
     VAL_OBJ,
 } ValueType;
 
-typedef struct {
+struct Value {
     ValueType type;
     union {
         bool boolean;
         double number;
         Obj *obj;
     } as;
-} Value;
+};
 
 #define BOOL_VAL(v) ((Value){VAL_BOOL, {.boolean = (v)}})
 #define NIL_VAL ((Value){VAL_NIL, {.number = 0}})
@@ -42,9 +42,11 @@ static inline bool isObjType(Value value, ObjType type) {
 }
 #define IS_STRING(v) isObjType(v, OBJ_STRING)
 #define IS_FUNCTION(v) isObjType(v, OBJ_FUNCTION)
+#define IS_NATIVE(v) isObjType(v, OBJ_NATIVE)
 #define AS_STRING(v) ((ObjString*)AS_OBJ(v))
 #define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
 #define AS_FUNCTION(v) ((ObjFunction*)AS_OBJ(v))
+#define AS_NATIVE(v) (((ObjNative*)AS_OBJ(v))->function)
 
 
 std::ostream &operator<<(std::ostream &os, const Value &v);

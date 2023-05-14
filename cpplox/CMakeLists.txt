@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 include(CTest)
 enable_testing()
 
-add_executable(cpplox main.cc lox.cc token.cc value.cc callable.cc vm/debug.cc vm/value.cc vm/object_manager.cc vm/object.cc)
+add_executable(cpplox main.cc lox.cc token.cc value.cc callable.cc vm/debug.cc vm/value.cc vm/object_manager.cc vm/object.cc vm/clock.cc)
 add_executable(value_test value_test.cc value.cc)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
