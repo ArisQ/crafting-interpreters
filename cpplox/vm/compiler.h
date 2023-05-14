@@ -81,6 +81,15 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         chunk->writeAt(offset, (jump >> 8) & 0xFF);
         chunk->writeAt(offset + 1, jump & 0xFF);
     }
+    void writeLoop(const size_t offset) {
+        writeOp(OP_LOOP);
+        auto jump = chunk->getCount() - offset + 2;
+        if(jump>UINT16_MAX) {
+            error("Loop body too large.");
+        }
+        writeArg((jump >> 8) & 0xFF);
+        writeArg(jump & 0xFF);
+    }
 
     // locals
     Local locals[UINT8_MAX + 1];
@@ -270,7 +279,16 @@ public:
         writeOp(OP_DEFINE_GLOBAL);
         writeArg(var);
     }
-    void visitWhile(While *) {}
+    void visitWhile(While *s) {
+        auto loopStart = chunk->getCount();
+        s->condition->accept(this);
+        auto exitJump = writeJump(OP_JUMP_IF_ELSE);
+        writeOp(OP_POP);
+        s->body->accept(this);
+        writeLoop(loopStart);
+        patchJump(exitJump);
+        writeOp(OP_POP);
+    }
 
     Chunk compile(std::vector<std::shared_ptr<Stmt>> stmts) {
         Chunk k;

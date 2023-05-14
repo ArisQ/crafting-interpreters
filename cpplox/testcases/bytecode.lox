@@ -60,3 +60,15 @@ true or true;
 true or false;
 false or true;
 false or false;
+
+print true or 1;
+
+var x = 1;
+while(x<10) {
+    // x = x + 1;
+    // print x;
+    print x = x + 1;
+}
+for(var x = 1; x<10; x=x+1) {
+    print x;
+}
