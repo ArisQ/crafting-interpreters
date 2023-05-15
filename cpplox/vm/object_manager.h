@@ -64,10 +64,20 @@ public:
     const ObjString *NewString(const std::string &s) {
         return internedString(new ObjString(s));
     }
-    ObjFunction *NewFunction() {
-        auto func = new ObjFunction();
+    ObjFunction *NewFunction(const ObjString *name) {
+        auto func = new ObjFunction(name);
         INSERT_OBJ(func);
         return func;
+    }
+    ObjClosure *NewClosure(ObjFunction *function) {
+        auto closure = new ObjClosure(function);
+        INSERT_OBJ(closure);
+        return closure;
+    }
+    ObjUpvalue *NewUpvalue(Value *value) {
+        auto upvalue = new ObjUpvalue(value);
+        INSERT_OBJ(upvalue);
+        return upvalue;
     }
     ObjNative *NewNative(NativeFn function) {
         auto native = new ObjNative(function);

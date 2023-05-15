@@ -19,12 +19,21 @@ typedef enum {
 struct Local {
     Token name;
     int depth;
-    Local() : name(Token(TOKEN_EOF, "", -1, nullptr)),
-              depth(-1) {}
+    bool isCaptured;
+    Local()
+        : name(Token(TOKEN_EOF, "", -1, nullptr)),
+          depth(-1),
+          isCaptured(false) {}
+};
+struct Upvalue {
+    bool isLocal;
+    uint8_t index;
 };
 
 class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     ObjMgr &objMgr;
+
+    Compiler *enclosing = nullptr;
 
     ObjFunction *function;
     FunctionType type;
@@ -59,9 +68,13 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
 
     // variable getter/setter; namedVariable
     void accessVariable(const Token &name, const bool set = false) {
-        OpCode op = set ? OP_SET_LOCAL : OP_GET_LOCAL;
+        OpCode op;
         auto arg = resolveLocal(name);
-        if (arg == -1) {
+        if (arg != RESOLVE_NOT_FOUND) {
+            op = set ? OP_SET_LOCAL : OP_GET_LOCAL;
+        } else if ((arg = resolveUpvalue(name)) != RESOLVE_NOT_FOUND) {
+            op = set ? OP_SET_UPVALUE : OP_GET_UPVALUE;
+        } else {
             op = set ? OP_SET_GLOBAL : OP_GET_GLOBAL;
             arg = identifierConstant(name); // NOTE: 同一global的名称string占用了多个常量index
         }
@@ -108,12 +121,15 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
     Local locals[UINT8_MAX + 1];
     size_t localCount = 0;
     int scopeDepth = 0;
-
     void beginScope() { ++scopeDepth; }
     void endScope() {
         --scopeDepth;
         while (localCount > 0 && locals[localCount - 1].depth > scopeDepth) {
-            writeOp(OP_POP);
+            if (locals[localCount - 1].isCaptured) {
+                writeOp(OP_CLOSE_UPVALUE);
+            } else {
+                writeOp(OP_POP);
+            }
             --localCount;
         }
     }
@@ -141,6 +157,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         // local, return if scopeDepth==0
         locals[localCount-1].depth = scopeDepth;
     }
+    static constexpr size_t RESOLVE_NOT_FOUND = -1;
     size_t resolveLocal(const Token &name) {
         for (size_t i = localCount; i-- > 0;) {
             auto &local = locals[i];
@@ -151,7 +168,38 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
                 return i;
             }
         }
-        return -1;
+        return RESOLVE_NOT_FOUND;
+    }
+
+    // upvalue
+    Upvalue upvalues[UINT8_MAX + 1];
+    size_t resolveUpvalue(const Token &name) {
+        if(enclosing==nullptr) return RESOLVE_NOT_FOUND;
+        int local = enclosing->resolveLocal(name);
+        if (local != RESOLVE_NOT_FOUND) {
+            enclosing->locals[local].isCaptured = true;
+            return addUpvalue(local, true);
+        }
+        int upvalue = enclosing->resolveUpvalue(name);
+        if (upvalue != RESOLVE_NOT_FOUND) {
+            return addUpvalue(upvalue, false);
+        }
+        return RESOLVE_NOT_FOUND;
+    }
+    size_t addUpvalue(uint8_t index, bool isLocal) {
+        int upvalueCount = function->upvalueCount;
+        // find existing
+        for (int i = 0; i < upvalueCount; ++i) {
+            auto upvalue = &upvalues[i];
+            if (upvalue->index == index && upvalue->isLocal == isLocal) return i;
+        }
+        if (upvalueCount == (UINT8_MAX + 1)) {
+            error("Too many closure variables in function");
+            return 0;
+        }
+        upvalues[upvalueCount].isLocal = isLocal;
+        upvalues[upvalueCount].index = index;
+        return function->upvalueCount++;
     }
 
     // build function
@@ -289,9 +337,15 @@ public:
 
         // function(TYPE_FUNCTION);
         Compiler compiler(objMgr, TYPE_FUNCTION, s->name);
+        compiler.enclosing = this;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
-        writeConstant(OBJ_VAL(f));
+        writeOp(OP_CLOSURE);
+        writeArg(makeConstant(OBJ_VAL(f)));
+        for (int i = 0; i < f->upvalueCount; ++i) {
+            writeArg(compiler.upvalues[i].isLocal?1:0);
+            writeArg(compiler.upvalues[i].index);
+        }
 
         if (scopeDepth == 0) { // global
             writeOp(OP_DEFINE_GLOBAL);
@@ -364,16 +418,20 @@ public:
 
     Compiler(ObjMgr &objMgr, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : objMgr(objMgr)
     {
-        function = objMgr.NewFunction();
-        type = type;
+        const ObjString *name = nullptr;
         if(type!=TYPE_SCRIPT) {
-            function->name = objMgr.NewString(token.lexeme);
+            // name string需要在function前创建
+            // 否则析构的时候会析构string，导致function中的name指向无效
+            name = objMgr.NewString(token.lexeme);
         }
+        function = objMgr.NewFunction(name);
+        type = type;
         chunk = function->chunk;
 
         auto local = locals[localCount++];
         local.depth = 0;
         local.name = token;
+        local.isCaptured = false;
     }
 
     ObjFunction *compile(std::vector<std::shared_ptr<Stmt>> stmts) {

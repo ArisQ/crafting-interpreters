@@ -27,7 +27,7 @@ static const size_t FRAMES_MAX = 64;
 static const size_t STACK_MAX = (FRAMES_MAX * (UINT8_MAX + 1));
 
 struct CallFrame {
-    ObjFunction *function;
+    ObjClosure *closure;
     uint8_t *ip;
     Value *slots; // pointer to stack frame base
 };
@@ -41,15 +41,17 @@ class VM {
     Value *stackTop;
     ObjMgr &objMgr;
     Table globals;
+    ObjUpvalue *openUpvalues;
 
     inline const uint8_t readByte() { return *frame->ip++; }
     inline const uint16_t readShort() { return (readByte() << 8) + readByte(); }
-    inline const Value readConstant() { return frame->function->chunk->getConstant(readByte()); }
+    inline const Value readConstant() { return frame->closure->function->chunk->getConstant(readByte()); }
     inline const ObjString *readString() { return AS_STRING(readConstant()); }
 
     void resetStack() {
         stackTop = stack;
         frameCount = 0;
+        openUpvalues = nullptr;
     }
     inline void push(Value value) { *stackTop++ = value; }
     inline Value pop() { return *--stackTop; }
@@ -67,8 +69,8 @@ class VM {
         fputs("\n", stderr);
         for (int i = frameCount - 1; i >= 0; --i) {
             auto frame = &frames[i];
-            auto function = frame->function;
-            auto instruction = frame->ip - frame->function->chunk->code -1;
+            auto function = frame->closure->function;
+            auto instruction = frame->ip - frame->closure->function->chunk->code -1;
             fprintf(stderr, "[line %d] in ", function->chunk->lines[instruction]);
             if(function->name==nullptr) {
                 fprintf(stderr, "scripts\n");
@@ -86,7 +88,7 @@ class VM {
     bool callValue(Value callee, int argCount) {
         if(IS_OBJ(callee)) {
             switch (OBJ_TYPE(callee)) {
-            case OBJ_FUNCTION: return call(AS_FUNCTION(callee), argCount);
+            case OBJ_CLOSURE: return call(AS_CLOSURE(callee), argCount);
             case OBJ_NATIVE: {
                 auto native = AS_NATIVE(callee);
                 auto result = native(argCount, stackTop - argCount);
@@ -100,7 +102,8 @@ class VM {
         runtimeError("Can only call functions and classes.");
         return false;
     }
-    bool call(ObjFunction *function, int argCount) {
+    bool call(ObjClosure *closure, int argCount) {
+        auto function = closure->function;
         if(argCount!=function->arity) {
             runtimeError("Expect %d arguments but got %d.", function->arity, argCount);
             return false;
@@ -110,11 +113,39 @@ class VM {
             return false;
         }
         frame = &frames[frameCount++];
-        frame->function = function;
+        frame->closure = closure;
         frame->ip = function->chunk->code;
         frame->slots = stackTop - argCount - 1;
         return true;
     }
+    ObjUpvalue *captureUpvalue(Value *value) {
+        ObjUpvalue *prevUpvalue = nullptr;
+        ObjUpvalue *upvalue = openUpvalues;
+        while (upvalue != nullptr && upvalue->location > value) {
+            prevUpvalue=upvalue;
+            upvalue = upvalue->next;
+        }
+        if (upvalue != nullptr && upvalue->location == value) {
+            return upvalue;
+        }
+        auto createdUpvalue = objMgr.NewUpvalue(value);
+        createdUpvalue->next=upvalue;
+        if(prevUpvalue==nullptr) {
+            openUpvalues = createdUpvalue;
+        } else {
+            prevUpvalue->next = createdUpvalue;
+        }
+        return createdUpvalue;
+    }
+    void closeUpvalues(Value *last) {
+        while (openUpvalues != nullptr && openUpvalues->location >= last) {
+            auto upvalue = openUpvalues;
+            upvalue->closed = new Value(*upvalue->location);
+            upvalue->location = upvalue->closed;
+            openUpvalues = upvalue->next;
+        }
+    }
+
 public:
     static Value clockNative(int argCount, Value *args) {
         return NUMBER_VAL(clock());
@@ -134,9 +165,10 @@ public:
     }
     InterpretResult interpret(ObjFunction *function) {
         resetStack();
-        auto objFunc = OBJ_VAL(function);
-        push(objFunc);
-        callValue(objFunc, 0);
+        auto closure = objMgr.NewClosure(function);
+        auto objClosure = OBJ_VAL(closure);
+        push(objClosure);
+        callValue(objClosure, 0);
         return run();
     }
     InterpretResult run() {
@@ -159,7 +191,7 @@ public:
                 std::cout << "[ " << *slot << " ]";
             }
             std::cout << std::endl;
-            disassembleInstruction(std::cout, *frame->function->chunk, (size_t)(frame->ip - frame->function->chunk->code));
+            disassembleInstruction(std::cout, *frame->closure->function->chunk, (size_t)(frame->ip - frame->closure->function->chunk->code));
 #endif
             uint8_t instruction;
             switch (instruction=readByte()) {
@@ -249,6 +281,16 @@ public:
                 frame->slots[readByte()] = peek(0);
                 break;
             }
+            case OP_GET_UPVALUE: {
+                auto slot = readByte();
+                push(*frame->closure->upvalues[slot]->location);
+                break;
+            }
+            case OP_SET_UPVALUE: {
+                auto slot = readByte();
+                *frame->closure->upvalues[slot]->location = peek(0);
+                break;
+            }
             case OP_JUMP_IF_ELSE: {
                 uint16_t offset = readShort();
                 if (isFalsey(peek(0))) { // 不pop
@@ -273,8 +315,29 @@ public:
                 }
                 break;
             }
+            case OP_CLOSURE: {
+                auto function = AS_FUNCTION(readConstant());
+                auto closure = objMgr.NewClosure(function);
+                push(OBJ_VAL(closure));
+                for (int i = 0; i < closure->upvalueCount; ++i) {
+                    auto isLocal = readByte();
+                    auto index = readByte();
+                    if (isLocal) {
+                        closure->upvalues[i] = captureUpvalue(frame->slots + index);
+                    } else {
+                        closure->upvalues[i] = frame->closure->upvalues[index];
+                    }
+                }
+                break;
+            }
+            case OP_CLOSE_UPVALUE: {
+                closeUpvalues(stackTop-1);
+                pop();
+                break;
+            }
             case OP_RETURN: {
                 auto result = pop();
+                closeUpvalues(frame->slots);
                 --frameCount;
                 if(frameCount == 0 ) {
                     pop();

@@ -89,3 +89,14 @@ print "clox fib ";
 print n;
 print "cost";
 print end - start;
+
+fun wrap(a) {
+    print "wraping";
+    print a;
+    fun f() {
+        print a;
+    }
+    return f;
+}
+var x = wrap(1);
+x();

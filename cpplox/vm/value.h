@@ -42,10 +42,12 @@ static inline bool isObjType(Value value, ObjType type) {
 }
 #define IS_STRING(v) isObjType(v, OBJ_STRING)
 #define IS_FUNCTION(v) isObjType(v, OBJ_FUNCTION)
+#define IS_CLOSURE(v) isObjType(v, OBJ_CLOSURE)
 #define IS_NATIVE(v) isObjType(v, OBJ_NATIVE)
 #define AS_STRING(v) ((ObjString*)AS_OBJ(v))
 #define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
 #define AS_FUNCTION(v) ((ObjFunction*)AS_OBJ(v))
+#define AS_CLOSURE(v) ((ObjClosure*)AS_OBJ(v))
 #define AS_NATIVE(v) (((ObjNative*)AS_OBJ(v))->function)
 
 

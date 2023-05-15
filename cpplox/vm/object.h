@@ -13,6 +13,8 @@ typedef enum {
     OBJ_UNDEFINED,
     OBJ_STRING,
     OBJ_FUNCTION,
+    OBJ_CLOSURE,
+    OBJ_UPVALUE,
     OBJ_NATIVE,
 } ObjType;
 
@@ -20,7 +22,9 @@ struct Obj {
     ObjType type;
     Obj *next;
 
-    Obj(ObjType t) : type(t), next(nullptr) {}
+    Obj(ObjType t) : type(t), next(nullptr) {
+        std::cout << "new object " << t << " " << this << std::endl;
+    }
 };
 
 #define OBJ_TYPE(v) (AS_OBJ(v)->type)
@@ -98,12 +102,13 @@ class Chunk;
 struct ObjFunction {
     Obj obj;
     int arity;
+    int upvalueCount;
     Chunk *chunk;
     const ObjString *name;
 
     ~ObjFunction();
 private:
-    ObjFunction();
+    ObjFunction(const ObjString *name = nullptr);
     friend class ObjMgr;
 };
 
@@ -113,6 +118,35 @@ struct ObjNative {
     Obj obj;
     NativeFn function;
     ObjNative(NativeFn function) : obj(OBJ_NATIVE), function(function) {}
+};
+
+struct ObjUpvalue {
+    Obj obj;
+    Value *location;
+    Value *closed;
+    ObjUpvalue *next;
+
+    ObjUpvalue(Value *loc = nullptr);
+    ~ObjUpvalue();
+};
+
+struct ObjClosure {
+    Obj obj;
+    ObjFunction *function;
+
+    ObjUpvalue **upvalues;
+    int upvalueCount;
+
+    ObjClosure(ObjFunction *function) : obj(OBJ_CLOSURE), function(function) {
+        upvalueCount=function->upvalueCount;
+        upvalues = new ObjUpvalue*[upvalueCount];
+        for(int i=0;i<upvalueCount;++i) {
+            upvalues[i] = nullptr;
+        }
+    }
+    ~ObjClosure() {
+        delete[] upvalues;
+    }
 };
 
 static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
@@ -128,6 +162,12 @@ static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
         }
         break;
     }
+    case OBJ_CLOSURE: {
+        auto closure = (const ObjClosure*)obj;
+        os << "closure " << (Obj*)closure->function;
+        break;
+    }
+    case OBJ_UPVALUE: os << "upvalue"; break;
     case OBJ_NATIVE: {
         os << "<native fn>";
         break;

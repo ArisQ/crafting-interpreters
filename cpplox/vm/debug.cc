@@ -65,10 +65,30 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_SET_GLOBAL: return constantInstruction(os, "OP_SET_GLOBAL", chunk, offset);
     case OP_GET_LOCAL: return byteInstruction(os, "OP_GET_LOCAL", chunk, offset);
     case OP_SET_LOCAL: return byteInstruction(os, "OP_SET_LOCAL", chunk, offset);
+    case OP_GET_UPVALUE: return byteInstruction(os, "OP_GET_UPVALUE", chunk, offset);
+    case OP_SET_UPVALUE: return byteInstruction(os, "OP_SET_UPVALUE", chunk, offset);
     case OP_JUMP_IF_ELSE: return jumpInstruction(os, "OP_JUMP_IF_ELSE", chunk, offset);
     case OP_JUMP: return jumpInstruction(os, "OP_JUMP", chunk, offset);
     case OP_LOOP: return jumpInstruction(os, "OP_LOOP", chunk, offset, -1);
     case OP_CALL: return byteInstruction(os, "OP_CALL", chunk, offset);
+    case OP_CLOSURE: {
+        // return constantInstruction(os, "OP_CLOSURE", chunk, offset);
+        ++offset;
+        uint8_t constant = chunk.get(offset++);
+        os << std::setfill(' ') << std::setw(16) << std::left << "OP_CLOSURE"
+           << std::setfill(' ') << std::setw(4) << uint(constant) << " "
+           << chunk.getConstant(constant) << std::endl;
+        auto fn = AS_FUNCTION(chunk.getConstant(constant));
+        for (int j = 0; j < fn->upvalueCount; ++j) {
+            int isLocal = chunk.get(offset++);
+            int index = chunk.get(offset++);
+            os << std::setfill('0') << std::setw(4) << std::right << offset - 2 << ' '
+               << "   |                     " << (isLocal ? "local" : "upvalue")
+               << " " << index << std::endl;
+        }
+        return offset;
+    }
+    case OP_CLOSE_UPVALUE: return simpleInstruction(os, "OP_CLOSE_UPVALUE", offset);
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;
