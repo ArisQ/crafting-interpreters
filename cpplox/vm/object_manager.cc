@@ -10,6 +10,12 @@ ObjOwner::ObjOwner(ObjPool &pool) : pool(pool) {
 ObjOwner::~ObjOwner() {
     pool.unregisterOwner(this);
 }
+void ObjOwner::markObj(Obj *o) {
+    pool.markObj(o);
+}
+void ObjOwner::markValue(Value &v) {
+    pool.markValue(v);
+}
 
 const ObjString *ObjOwner::NewString(const ObjString *const a, const ObjString *const b) {
     return pool.internedString(new ObjString(a, b));
@@ -46,21 +52,107 @@ void ObjPool::collectGarbage() {
     std::cout << "-- gc begin" << std::endl;
 #endif
     markRoots();
+    traceReferences();
+    sweep();
 #ifdef DEBUG_LOG_GC
     std::cout << "-- gc end" << std::endl;
 #endif
 }
+
 void ObjPool::markRoots() {
-    // for (auto slot = vm->stack; slot < vm->stackTop; ++slot) {
-    //     slot->mark();
-    // }
-    // for (int i = 0; i < vm->frameCount; ++i) {
-    //     ((Obj *)vm->frames[i].closure)->mark();
-    // }
-    // for (ObjUpvalue *v = vm->openUpvalues; v != nullptr; v = v->next) {
-    //     ((Obj*)v)->mark();
-    // }
-    // vm->globals.mark();
-    // compiler->mark();
+    auto p = owners;
+    while (p != nullptr) {
+        p->mark();
+        p = p->next;
+    }
+}
+
+void ObjPool::traceReferences() {
+    std::cout << "trace reference" << std::endl;
+    while(grayCount>0) {
+        Obj *obj = grayStack[--grayCount];
+        // std::cout<<obj<< std::endl;
+        blackenObject(obj);
+    }
+}
+void ObjPool::blackenObject(Obj *o) {
+#ifdef DEBUG_LOG_GC
+    std::cout << (void *)o << " blacken " << o << std::endl;
+#endif
+    switch (o->type)
+    {
+    case OBJ_NATIVE:
+    case OBJ_STRING:
+        break;
+    case OBJ_UPVALUE:
+        markValue(*((ObjUpvalue *)o)->closed);
+        break;
+    case OBJ_FUNCTION: {
+        auto fn = (ObjFunction*)o;
+        markObj((Obj*)fn->name);
+        markArray(&fn->chunk->constants);
+        break;
+    }
+    case OBJ_CLOSURE: {
+        auto closure = (ObjClosure*)o;
+        markObj((Obj*)closure->function);
+        for(int i=0;i<closure->upvalueCount;i++) {
+            markObj((Obj*)closure->upvalues[i]);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+void ObjPool::sweep() {
+#ifdef DEBUG_LOG_GC
+    std::cout << "sweep" << std::endl;
+#endif
+    Obj* pre = nullptr;
+    Obj* obj = objects;
+    while(obj!=nullptr) {
+        if(obj->isMarked) {
+            obj->isMarked = false;
+            pre = obj;
+            obj = obj->next;
+        } else {
+            auto unreached = obj;
+            obj = obj->next;
+            if (pre != nullptr) {
+                pre->next = obj;
+            } else {
+                objects = obj;
+            }
+            freeObj(unreached);
+        }
+    }
+}
+
+void ObjPool::markObj(Obj *o) {
+    if (o == nullptr) return;
+    if (o->isMarked) return;
+    o->mark();
+    addGray(o);
+}
+void ObjPool::markValue(Value &v) {
+    if (!IS_OBJ(v)) return;
+    markObj(AS_OBJ(v));
+}
+void ObjPool::markArray(ValueArray *a) {
+    for(int i =0;i<a->count;i++) {
+        markValue(a->values[i]);
+    }
+}
+void ObjPool::addGray(Obj *o) {
+    if (grayCapacity < grayCount + 1) {
+        grayCapacity = grayCapacity < 8 ? 8 : (grayCapacity << 1);
+        grayStack = (Obj **)realloc(grayStack, sizeof(Obj *) * grayCapacity);
+        if (grayStack == nullptr)
+        {
+            exit(1); // realloc failed
+        }
+    }
+    grayStack[grayCount++] = o;
 }
 }

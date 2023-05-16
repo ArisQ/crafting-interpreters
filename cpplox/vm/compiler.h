@@ -1,11 +1,11 @@
 #ifndef _VM_COMPILER_H_
 #define _VM_COMPILER_H_
 
-#define DEBUG_PRINT_CODE
-
 #include "../stmt.h"
 #include "../expr.h"
 
+#include "config.h"
+#include "debug.h"
 #include "chunk.h"
 #include "object_manager.h"
 
@@ -219,6 +219,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOw
     }
 
     void mark() {
+        markObj((Obj*)function);
     }
 public:
     void visitAssign(Assign *e) {

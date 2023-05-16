@@ -1,6 +1,7 @@
 #ifndef _VM_OBJECT_MANAGER_H_
 #define _VM_OBJECT_MANAGER_H_
 
+#include "config.h"
 #include "object.h"
 #include "table.h"
 
@@ -23,6 +24,8 @@ protected:
 
     virtual void mark() = 0;
 
+    void markObj(Obj *o);
+    void markValue(Value &v);
 public:
     ObjOwner(ObjPool &);
     ~ObjOwner();
@@ -36,7 +39,12 @@ class ObjPool {
     ObjOwner *owners = nullptr;
     static Table strings; // string interning
 
+    int grayCount = 0;
+    int grayCapacity = 0;
+    Obj **grayStack = nullptr;
+
     void registerOwner(ObjOwner *o) {
+        std::cout << "register owner " << o << std::endl;
         auto pre = owners;
         o->next = pre;
         owners = o;
@@ -51,6 +59,7 @@ class ObjPool {
                 } else {
                     pre->next=p->next;
                 }
+                return;
             }
             pre = p;
             p = p->next;
@@ -60,35 +69,47 @@ class ObjPool {
 
     void collectGarbage();
     void markRoots();
+    void traceReferences();
+    void blackenObject(Obj *o);
+    void sweep();
 
+    void markObj(Obj *o);
+    void markValue(Value &v);
+    void markArray(ValueArray *a);
+    void addGray(Obj *o);
+
+    void freeObj(Obj *object) {
+        switch (object->type) {
+        case OBJ_STRING: {
+            // 转成ObjString再删除，否则析构函数不会被调用
+            // 参考多态情况下的虚析构函数
+            auto str = (ObjString *)object;
+            strings.remove(str);
+            delete str;
+            break;
+        }
+        case OBJ_FUNCTION: {
+            auto func = (ObjFunction *)object;
+            delete func;
+            break;
+        }
+        case OBJ_NATIVE: {
+            auto native = (ObjNative *)object;
+            delete native;
+            break;
+        }
+        default: break;
+        }
+    }
 public:
     ObjPool() : objects(nullptr) {}
     ~ObjPool() {
         printf("destruct obj pool\n");
+        free(grayStack);
         auto object = objects;
         while(object != nullptr) {
             auto next = object->next;
-            switch (object->type) {
-            case OBJ_STRING: {
-                // 转成ObjString再删除，否则析构函数不会被调用
-                // 参考多态情况下的虚析构函数
-                auto str = (ObjString *)object;
-                strings.remove(str);
-                delete str;
-                break;
-            }
-            case OBJ_FUNCTION: {
-                auto func = (ObjFunction *)object;
-                delete func;
-                break;
-            }
-            case OBJ_NATIVE: {
-                auto native = (ObjNative *)object;
-                delete native;
-                break;
-            }
-            default: break;
-            }
+            freeObj(object);
             object = next;
         }
     }

@@ -43,6 +43,8 @@ typedef enum {
 } OpCode;
 
 class Chunk {
+    friend class ObjPool;
+
     size_t count;
     size_t capacity;
     uint8_t *code;

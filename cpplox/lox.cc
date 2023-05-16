@@ -5,9 +5,9 @@
 #include <fstream>
 #include <sstream>
 
+#include "lox.h"
 #include "interpreter.h"
 #include "resolver.h"
-#include "lox.h"
 #include "parser.h"
 #include "scanner.h"
 #include "expr.h"

@@ -4,12 +4,11 @@
 #include <cstdarg>
 #include <chrono>
 
+#include "config.h"
 #include "chunk.h"
 #include "object_manager.h"
 #include "debug.h"
 #include "clock.h"
-
-#define DEBUG_TRACE_EXECUTION
 
 #ifdef DEBUG_TRACE_EXECUTION
 #include <iostream>
@@ -152,6 +151,21 @@ class VM : public ObjOwner {
     }
 
     void mark() {
+        for (auto slot = stack; slot < stackTop; ++slot) {
+            markValue(*slot);
+        }
+        for (int i = 0; i < frameCount; ++i) {
+            markObj((Obj *)frames[i].closure);
+        }
+        for (ObjUpvalue *v = openUpvalues; v != nullptr; v = v->next) {
+            markObj((Obj *)v);
+        }
+        // globals
+        for (int i = 0; i < globals.capacity; ++i) {
+            auto entry = &(globals.entries)[i];
+            markObj((Obj*)entry->key);
+            markValue(entry->value);
+        }
     }
 
 public:

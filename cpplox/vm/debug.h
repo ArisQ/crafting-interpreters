@@ -4,6 +4,7 @@
 #include <ostream>
 #include <iomanip>
 
+#include "config.h"
 #include "chunk.h"
 
 namespace vm {

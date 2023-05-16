@@ -58,6 +58,8 @@ bool operator==(const Value l, const Value r);
 bool valuesEqual(const Value l, const Value r);
 
 class ValueArray {
+    friend class ObjPool;
+
     int capacity;
     int count;
     Value *values;

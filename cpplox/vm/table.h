@@ -87,13 +87,6 @@ struct Table {
         }
     }
 
-    void mark() {
-        for(int i=0;i<capacity;++i) {
-            auto entry = &entries[i];
-            ((Obj *)entry->key)->mark();
-            entry->value.mark();
-        }
-    }
 private:
     void adjustCapacity() {
         auto oldEntries = entries;
@@ -135,7 +128,6 @@ private:
         }
     }
 };
-
 }
 
 #endif // _VM_TABLE_H_

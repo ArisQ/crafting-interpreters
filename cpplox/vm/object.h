@@ -7,6 +7,8 @@
 #include <string>
 #include <iostream>
 
+#include "config.h"
+
 #ifdef DEBUG_LOG_GC
 #include <map>
 #endif
@@ -23,7 +25,6 @@ typedef enum {
 } ObjType;
 
 #ifdef DEBUG_LOG_GC
-
 static std::map<ObjType, std::string> objTypeStr{
     {OBJ_UNDEFINED, "OBJ_UNDEFINED"},
     {OBJ_STRING, "OBJ_STRING"},
@@ -41,6 +42,10 @@ static std::ostream &operator<<(std::ostream &os, ObjType t) {
 }
 #endif
 
+struct Obj;
+std::ostream &operator<<(std::ostream &os, const Obj * const obj);
+
+
 struct Obj {
     ObjType type;
     Obj *next;
@@ -49,16 +54,16 @@ struct Obj {
 
     Obj(ObjType t) : type(t), next(nullptr) {
 #ifdef DEBUG_LOG_GC
-        std::cout << "new " << t << " " << this << std::endl;
+        // 构造时，子struct还未创建
+        std::cout << "new " << t << " " << (void*)this << std::endl;
 #endif
     }
     ~Obj() {
 #ifdef DEBUG_LOG_GC
-        std::cout << "free " << type << " " << this << std::endl;
+        std::cout << "free " << type << " " << (void*)this << std::endl;
 #endif
     }
     void mark() {
-        // if (obj == nullptr) return;
 #ifdef DEBUG_LOG_GC
         std::cout << (void*)this <<" mark " << this << std::endl;
 #endif
@@ -190,33 +195,6 @@ struct ObjClosure {
     }
 };
 
-static std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
-    os << '*';
-    switch (obj->type) {
-    case OBJ_STRING: os << '"' << ((const ObjString *)(obj))->chars << '"'; break;
-    case OBJ_FUNCTION: {
-        auto func = (const ObjFunction *)obj;
-        if (func->name==nullptr){
-            os << "<script>";
-        } else {
-            os << "<fn " << func->name->chars << ">";
-        }
-        break;
-    }
-    case OBJ_CLOSURE: {
-        auto closure = (const ObjClosure*)obj;
-        os << "closure " << (Obj*)closure->function;
-        break;
-    }
-    case OBJ_UPVALUE: os << "upvalue"; break;
-    case OBJ_NATIVE: {
-        os << "<native fn>";
-        break;
-    }
-    default: os << "unknown object type " << obj->type; break;
-    }
-    return os;
-}
 
 }
 
