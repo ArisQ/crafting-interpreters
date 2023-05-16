@@ -1,12 +1,14 @@
 #ifndef _LOX_H_
 #define _LOX_H_
 
+#define INTERPRET_WITH_VM
+#define DEBUG_STRESS_GC
+#define DEBUG_LOG_GC
+
 #include <string>
 #include "token.h"
 #include "interpreter.h"
 #include "vm/vm.h"
-
-#define INTERPRET_WITH_VM
 
 class Lox
 {

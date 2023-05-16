@@ -7,6 +7,10 @@
 #include <string>
 #include <iostream>
 
+#ifdef DEBUG_LOG_GC
+#include <map>
+#endif
+
 namespace vm {
 
 typedef enum {
@@ -18,12 +22,47 @@ typedef enum {
     OBJ_NATIVE,
 } ObjType;
 
+#ifdef DEBUG_LOG_GC
+
+static std::map<ObjType, std::string> objTypeStr{
+    {OBJ_UNDEFINED, "OBJ_UNDEFINED"},
+    {OBJ_STRING, "OBJ_STRING"},
+    {OBJ_FUNCTION, "OBJ_FUNCTION"},
+    {OBJ_CLOSURE, "OBJ_CLOSURE"},
+    {OBJ_UPVALUE, "OBJ_UPVALUE"},
+    {OBJ_NATIVE, "OBJ_NATIVE"},
+};
+static std::ostream &operator<<(std::ostream &os, ObjType t) {
+    if (objTypeStr.contains(t))
+        os << objTypeStr.at(t);
+    else
+        os << "object" << int(t);
+    return os;
+}
+#endif
+
 struct Obj {
     ObjType type;
     Obj *next;
 
+    bool isMarked = false; // gc mark
+
     Obj(ObjType t) : type(t), next(nullptr) {
-        std::cout << "new object " << t << " " << this << std::endl;
+#ifdef DEBUG_LOG_GC
+        std::cout << "new " << t << " " << this << std::endl;
+#endif
+    }
+    ~Obj() {
+#ifdef DEBUG_LOG_GC
+        std::cout << "free " << type << " " << this << std::endl;
+#endif
+    }
+    void mark() {
+        // if (obj == nullptr) return;
+#ifdef DEBUG_LOG_GC
+        std::cout << (void*)this <<" mark " << this << std::endl;
+#endif
+        isMarked = true;
     }
 };
 

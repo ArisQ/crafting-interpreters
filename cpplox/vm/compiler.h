@@ -336,7 +336,7 @@ public:
         }
 
         // function(TYPE_FUNCTION);
-        Compiler compiler(objMgr, TYPE_FUNCTION, s->name);
+        Compiler compiler(objMgr, this, TYPE_FUNCTION, s->name);
         compiler.enclosing = this;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
@@ -416,8 +416,9 @@ public:
         writeOp(OP_POP);
     }
 
-    Compiler(ObjMgr &objMgr, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : objMgr(objMgr)
+    Compiler(ObjMgr &objMgr, Compiler *enclosing = nullptr, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : objMgr(objMgr), enclosing(enclosing)
     {
+        objMgr.compiler = this;
         const ObjString *name = nullptr;
         if(type!=TYPE_SCRIPT) {
             // name string需要在function前创建
@@ -433,6 +434,7 @@ public:
         local.name = token;
         local.isCaptured = false;
     }
+    ~Compiler() { objMgr.compiler = enclosing; }
 
     ObjFunction *compile(std::vector<std::shared_ptr<Stmt>> stmts) {
         for(const auto stmt: stmts) {

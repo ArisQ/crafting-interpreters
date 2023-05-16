@@ -5,13 +5,21 @@
 #include "table.h"
 
 namespace vm {
+class VM;
+class Compiler;
 
 class ObjMgr {
     Obj *objects;
 
     static Table strings; // string interning
 
+    void collectGarbage();
+    void markRoots();
+
 public:
+    VM *vm = nullptr;
+    Compiler *compiler = nullptr;
+
     ObjMgr() : objects(nullptr) {}
     ~ObjMgr() {
         printf("destruct obj mgr\n");
@@ -44,6 +52,7 @@ public:
     }
 
 #define INSERT_OBJ(o) \
+    collectGarbage(); \
     auto obj = o; \
     obj->obj.next = objects; \
     objects = (Obj *)obj; \

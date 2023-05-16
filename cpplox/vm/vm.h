@@ -33,6 +33,8 @@ struct CallFrame {
 };
 
 class VM {
+    friend class ObjMgr;
+
     CallFrame frames[FRAMES_MAX];
     int frameCount;
     CallFrame *frame;
@@ -46,7 +48,7 @@ class VM {
     inline const uint8_t readByte() { return *frame->ip++; }
     inline const uint16_t readShort() { return (readByte() << 8) + readByte(); }
     inline const Value readConstant() { return frame->closure->function->chunk->getConstant(readByte()); }
-    inline const ObjString *readString() { return AS_STRING(readConstant()); }
+    inline ObjString *readString() { return AS_STRING(readConstant()); }
 
     void resetStack() {
         stackTop = stack;
@@ -128,6 +130,9 @@ class VM {
         if (upvalue != nullptr && upvalue->location == value) {
             return upvalue;
         }
+#ifdef DEBUG_TRACE_EXECUTION
+        std::cout << "capture " << value << " '" << *value << "'" << std::endl;
+#endif
         auto createdUpvalue = objMgr.NewUpvalue(value);
         createdUpvalue->next=upvalue;
         if(prevUpvalue==nullptr) {
@@ -140,6 +145,9 @@ class VM {
     void closeUpvalues(Value *last) {
         while (openUpvalues != nullptr && openUpvalues->location >= last) {
             auto upvalue = openUpvalues;
+#ifdef DEBUG_TRACE_EXECUTION
+            std::cout << "closing " << upvalue->location << " '" << *upvalue->location << "'" << std::endl;
+#endif
             upvalue->closed = new Value(*upvalue->location);
             upvalue->location = upvalue->closed;
             openUpvalues = upvalue->next;
@@ -151,6 +159,7 @@ public:
         return NUMBER_VAL(clock());
     }
     VM(ObjMgr &objMgr) : objMgr(objMgr) {
+        objMgr.vm = this;
         stackTop = stack;
         defineNative("clock", clockNative);
     }

@@ -21,6 +21,8 @@ struct Value {
         double number;
         Obj *obj;
     } as;
+
+    void mark();
 };
 
 #define BOOL_VAL(v) ((Value){VAL_BOOL, {.boolean = (v)}})

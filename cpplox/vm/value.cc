@@ -3,6 +3,11 @@
 
 namespace vm
 {
+    void Value::mark() {
+        if (!IS_OBJ(*this))
+            return;
+        AS_OBJ(*this)->mark();
+    }
     std::ostream &operator<<(std::ostream &os, const Value &v)
     {
         switch (v.type)

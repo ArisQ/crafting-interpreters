@@ -10,7 +10,7 @@
 namespace vm {
 
 struct Entry {
-    const ObjString *key;
+    ObjString *key;
     Value value;
 };
 
@@ -29,7 +29,7 @@ struct Table {
         capacity = 0;
     }
 
-    bool set(const ObjString *const key, Value value) {
+    bool set(ObjString *const key, Value value) {
         if(count+1>capacity*TABLE_MAX_LOAD) {
             adjustCapacity();
         }
@@ -84,6 +84,14 @@ struct Table {
             ) {
                 return k;
             }
+        }
+    }
+
+    void mark() {
+        for(int i=0;i<capacity;++i) {
+            auto entry = &entries[i];
+            ((Obj *)entry->key)->mark();
+            entry->value.mark();
         }
     }
 private:
