@@ -72,13 +72,13 @@ void Lox::run(const string &s)
 
 #ifdef INTERPRET_WITH_VM
     try {
-        vm::ObjMgr objMgr;
-        vm::Compiler compiler(objMgr);
+        vm::ObjPool pool;
+        vm::Compiler compiler(pool);
         const auto func = compiler.compile(stmts);
         if(compiler.hasError()) {
             return;
         }
-        vm::VM vm(objMgr);
+        vm::VM vm(pool);
         int n = 36;
         auto start = vm::clock();
         auto f = fib(n);

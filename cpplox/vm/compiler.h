@@ -30,9 +30,7 @@ struct Upvalue {
     uint8_t index;
 };
 
-class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
-    ObjMgr &objMgr;
-
+class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOwner {
     Compiler *enclosing = nullptr;
 
     ObjFunction *function;
@@ -63,7 +61,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         // chunk->writeConstant(value, currentLine);
     }
     uint8_t identifierConstant(const Token &name) {
-        return makeConstant(OBJ_VAL(objMgr.NewString(name.lexeme)));
+        return makeConstant(OBJ_VAL(NewString(name.lexeme)));
     }
 
     // variable getter/setter; namedVariable
@@ -219,6 +217,9 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void> {
         endScope();
         return function;
     }
+
+    void mark() {
+    }
 public:
     void visitAssign(Assign *e) {
         currentLine = e->name.line;
@@ -271,7 +272,7 @@ public:
             writeOp(n->v?OP_TRUE:OP_FALSE);
         } else if(auto n = std::dynamic_pointer_cast<StringValue>(e->value)) {
             // writeConstant(OBJ_VAL(new ObjString(n->v)));
-            writeConstant(OBJ_VAL(objMgr.NewString(n->v))); // 常量的Object由chunk管理（属于代码段）
+            writeConstant(OBJ_VAL(NewString(n->v))); // 常量的Object由chunk管理（属于代码段）
         }
     }
     void visitLogical(Logical *e) {
@@ -336,7 +337,7 @@ public:
         }
 
         // function(TYPE_FUNCTION);
-        Compiler compiler(objMgr, this, TYPE_FUNCTION, s->name);
+        Compiler compiler(pool, TYPE_FUNCTION, s->name);
         compiler.enclosing = this;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
@@ -416,16 +417,14 @@ public:
         writeOp(OP_POP);
     }
 
-    Compiler(ObjMgr &objMgr, Compiler *enclosing = nullptr, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : objMgr(objMgr), enclosing(enclosing)
-    {
-        objMgr.compiler = this;
+    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : ObjOwner(objPool) {
         const ObjString *name = nullptr;
         if(type!=TYPE_SCRIPT) {
             // name string需要在function前创建
             // 否则析构的时候会析构string，导致function中的name指向无效
-            name = objMgr.NewString(token.lexeme);
+            name = NewString(token.lexeme);
         }
-        function = objMgr.NewFunction(name);
+        function = NewFunction(name);
         type = type;
         chunk = function->chunk;
 
@@ -434,7 +433,6 @@ public:
         local.name = token;
         local.isCaptured = false;
     }
-    ~Compiler() { objMgr.compiler = enclosing; }
 
     ObjFunction *compile(std::vector<std::shared_ptr<Stmt>> stmts) {
         for(const auto stmt: stmts) {

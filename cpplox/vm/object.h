@@ -100,6 +100,7 @@ struct ObjString {
     }
 
     friend class ObjMgr;
+    friend class ObjOwner;
 
 private:
     // 私有constructor，只有ObjMgr能够构造
@@ -149,6 +150,7 @@ struct ObjFunction {
 private:
     ObjFunction(const ObjString *name = nullptr);
     friend class ObjMgr;
+    friend class ObjOwner;
 };
 
 struct Value;

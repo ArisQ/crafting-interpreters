@@ -5,24 +5,66 @@
 #include "table.h"
 
 namespace vm {
-class VM;
-class Compiler;
 
-class ObjMgr {
+class ObjPool;
+class ObjOwner {
+    friend class ObjPool;
+
+    ObjOwner *next;
+protected:
+    ObjPool &pool;
+
+    const ObjString *NewString(const ObjString *const a, const ObjString *const b);
+    const ObjString *NewString(const std::string &s);
+    ObjFunction *NewFunction(const ObjString *name);
+    ObjClosure *NewClosure(ObjFunction *function);
+    ObjUpvalue *NewUpvalue(Value *value);
+    ObjNative *NewNative(NativeFn function);
+
+    virtual void mark() = 0;
+
+public:
+    ObjOwner(ObjPool &);
+    ~ObjOwner();
+};
+
+// object pool
+class ObjPool {
+    friend class ObjOwner;
+
     Obj *objects;
-
+    ObjOwner *owners = nullptr;
     static Table strings; // string interning
+
+    void registerOwner(ObjOwner *o) {
+        auto pre = owners;
+        o->next = pre;
+        owners = o;
+    }
+    void unregisterOwner(ObjOwner *o) {
+        ObjOwner *pre = nullptr;
+        auto p = owners;
+        while (p != nullptr) {
+            if (p == o) {
+                if(pre==nullptr) {
+                    owners = p->next;
+                } else {
+                    pre->next=p->next;
+                }
+            }
+            pre = p;
+            p = p->next;
+        }
+        std::cout << "failed to unregister owner " << o <<" : not found"<< std::endl;
+    }
 
     void collectGarbage();
     void markRoots();
 
 public:
-    VM *vm = nullptr;
-    Compiler *compiler = nullptr;
-
-    ObjMgr() : objects(nullptr) {}
-    ~ObjMgr() {
-        printf("destruct obj mgr\n");
+    ObjPool() : objects(nullptr) {}
+    ~ObjPool() {
+        printf("destruct obj pool\n");
         auto object = objects;
         while(object != nullptr) {
             auto next = object->next;
@@ -51,12 +93,11 @@ public:
         }
     }
 
-#define INSERT_OBJ(o) \
-    collectGarbage(); \
-    auto obj = o; \
-    obj->obj.next = objects; \
-    objects = (Obj *)obj; \
-    return obj;
+    void insertObj(Obj *o) {
+        collectGarbage();
+        o->next = objects;
+        objects = o; 
+    }
 
     const ObjString *internedString(ObjString *str) {
         auto interned = strings.findString(str);
@@ -65,35 +106,9 @@ public:
             return interned;
         }
         strings.set(str, NIL_VAL);
-        INSERT_OBJ(str);
+        insertObj((Obj*)str);
+        return str;
     }
-    const ObjString *NewString(const ObjString *const a, const ObjString *const b) {
-        return internedString(new ObjString(a, b));
-    }
-    const ObjString *NewString(const std::string &s) {
-        return internedString(new ObjString(s));
-    }
-    ObjFunction *NewFunction(const ObjString *name) {
-        auto func = new ObjFunction(name);
-        INSERT_OBJ(func);
-        return func;
-    }
-    ObjClosure *NewClosure(ObjFunction *function) {
-        auto closure = new ObjClosure(function);
-        INSERT_OBJ(closure);
-        return closure;
-    }
-    ObjUpvalue *NewUpvalue(Value *value) {
-        auto upvalue = new ObjUpvalue(value);
-        INSERT_OBJ(upvalue);
-        return upvalue;
-    }
-    ObjNative *NewNative(NativeFn function) {
-        auto native = new ObjNative(function);
-        INSERT_OBJ(native);
-        return native;
-    }
-#undef INSERT_OBJ
 };
 
 }

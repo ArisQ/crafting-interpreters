@@ -32,16 +32,13 @@ struct CallFrame {
     Value *slots; // pointer to stack frame base
 };
 
-class VM {
-    friend class ObjMgr;
-
+class VM : public ObjOwner {
     CallFrame frames[FRAMES_MAX];
     int frameCount;
     CallFrame *frame;
 
     Value stack[STACK_MAX];
     Value *stackTop;
-    ObjMgr &objMgr;
     Table globals;
     ObjUpvalue *openUpvalues;
 
@@ -133,7 +130,7 @@ class VM {
 #ifdef DEBUG_TRACE_EXECUTION
         std::cout << "capture " << value << " '" << *value << "'" << std::endl;
 #endif
-        auto createdUpvalue = objMgr.NewUpvalue(value);
+        auto createdUpvalue = NewUpvalue(value);
         createdUpvalue->next=upvalue;
         if(prevUpvalue==nullptr) {
             openUpvalues = createdUpvalue;
@@ -154,27 +151,29 @@ class VM {
         }
     }
 
+    void mark() {
+    }
+
 public:
     static Value clockNative(int argCount, Value *args) {
         return NUMBER_VAL(clock());
     }
-    VM(ObjMgr &objMgr) : objMgr(objMgr) {
-        objMgr.vm = this;
+    VM(ObjPool &pool) : ObjOwner(pool) {
         stackTop = stack;
         defineNative("clock", clockNative);
     }
     void defineNative(const char *name, NativeFn fn) {
         // globals.set(objMgr.NewString(name), OBJ_VAL(objMgr.NewNative(fn)));
         // for gc sake
-        push(OBJ_VAL(objMgr.NewString(name)));
-        push(OBJ_VAL(objMgr.NewNative(fn)));
+        push(OBJ_VAL(NewString(name)));
+        push(OBJ_VAL(NewNative(fn)));
         globals.set(AS_STRING(stack[0]), stack[1]);
         pop();
         pop();
     }
     InterpretResult interpret(ObjFunction *function) {
         resetStack();
-        auto closure = objMgr.NewClosure(function);
+        auto closure = NewClosure(function);
         auto objClosure = OBJ_VAL(closure);
         push(objClosure);
         callValue(objClosure, 0);
@@ -224,7 +223,7 @@ public:
                 if(IS_STRING(peek(0)) && IS_STRING(peek(1))) {
                     auto b = AS_STRING(pop());
                     auto a = AS_STRING(pop());
-                    push(OBJ_VAL(objMgr.NewString(a, b)));
+                    push(OBJ_VAL(NewString(a, b)));
                     // push(OBJ_VAL((*a) + (*b)));
                 } else if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
                     auto b = AS_NUMBER(pop());
@@ -326,7 +325,7 @@ public:
             }
             case OP_CLOSURE: {
                 auto function = AS_FUNCTION(readConstant());
-                auto closure = objMgr.NewClosure(function);
+                auto closure = NewClosure(function);
                 push(OBJ_VAL(closure));
                 for (int i = 0; i < closure->upvalueCount; ++i) {
                     auto isLocal = readByte();
@@ -365,7 +364,6 @@ public:
     }
 #undef BINARY_OP
 };
-
 }
 
 #endif // _VM_H_
