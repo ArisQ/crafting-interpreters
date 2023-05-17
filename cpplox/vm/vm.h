@@ -172,8 +172,8 @@ public:
     static Value clockNative(int argCount, Value *args) {
         return NUMBER_VAL(clock());
     }
-    VM(ObjPool &pool) : ObjOwner(pool) {
-        stackTop = stack;
+    VM(ObjPool &pool) : ObjOwner(pool), openUpvalues(nullptr), stackTop(stack), frame(nullptr) {
+        resetStack();
         defineNative("clock", clockNative);
     }
     void defineNative(const char *name, NativeFn fn) {

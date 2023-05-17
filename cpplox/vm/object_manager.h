@@ -17,7 +17,8 @@ protected:
 
     const ObjString *NewString(const ObjString *const a, const ObjString *const b);
     const ObjString *NewString(const std::string &s);
-    ObjFunction *NewFunction(const ObjString *name);
+    // ObjFunction *NewFunction(const ObjString *name);
+    ObjFunction *NewFunction();
     ObjClosure *NewClosure(ObjFunction *function);
     ObjUpvalue *NewUpvalue(Value *value);
     ObjNative *NewNative(NativeFn function);
@@ -42,6 +43,9 @@ class ObjPool {
     int grayCount = 0;
     int grayCapacity = 0;
     Obj **grayStack = nullptr;
+
+    size_t bytesAllocated = 0;
+    size_t nextGC = 1024 * 1024;
 
     void registerOwner(ObjOwner *o) {
         std::cout << "register owner " << o << std::endl;
@@ -79,12 +83,13 @@ class ObjPool {
     void addGray(Obj *o);
 
     void freeObj(Obj *object) {
+        bytesAllocated -= objSize(object);
         switch (object->type) {
         case OBJ_STRING: {
             // 转成ObjString再删除，否则析构函数不会被调用
             // 参考多态情况下的虚析构函数
             auto str = (ObjString *)object;
-            strings.remove(str);
+            strings.remove(str); // tableRemoveWhite here
             delete str;
             break;
         }
@@ -114,8 +119,21 @@ public:
         }
     }
 
+    static size_t objSize(Obj *o) {
+        switch (o->type) {
+        case OBJ_STRING: return sizeof(ObjString) + ((ObjString *)o)->length * sizeof(char);
+        case OBJ_FUNCTION: return sizeof(ObjFunction);
+        case OBJ_CLOSURE: return sizeof(ObjClosure);
+        case OBJ_UPVALUE: return sizeof(ObjUpvalue);
+        case OBJ_NATIVE: return sizeof(ObjNative);
+        default: return 0;
+        }
+    }
+
     void insertObj(Obj *o) {
-        collectGarbage();
+        bytesAllocated += objSize(o);
+        if (bytesAllocated > nextGC)
+            collectGarbage();
         o->next = objects;
         objects = o; 
     }

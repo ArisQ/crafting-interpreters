@@ -90,13 +90,42 @@ print n;
 print "cost";
 print end - start;
 
+var b = "hello";
 fun wrap(a) {
     print "wraping";
     print a;
     fun f() {
+        print b;
         print a;
     }
     return f;
 }
 var x = wrap(1);
 x();
+
+{
+fun outer() {
+    var a = 1;
+    var b = 2;
+    fun middle() {
+        var c = 3;
+        var d = 4;
+        fun inner() {
+            return a+c+b+d;
+        }
+        return inner;
+    }
+    return middle;
+}
+var m = outer();
+var i = m();
+print i();
+print "x" + "y";
+}
+print "a" + "b";
+
+var x = "1";
+for(var i=0;i<100;i=i+1) {
+    x = x + x + "x";
+}
+print x;

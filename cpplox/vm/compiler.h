@@ -418,14 +418,19 @@ public:
         writeOp(OP_POP);
     }
 
-    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : ObjOwner(objPool) {
-        const ObjString *name = nullptr;
-        if(type!=TYPE_SCRIPT) {
+    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : ObjOwner(objPool), function(nullptr) {
+        // 需要先初始化为nullptr再NewFuntion
+        // 否则NewFunction的时候，compiler会mark未知的function
+        function = NewFunction();
+
+        // name string需要在function后创建
+        // 否则创建function时，gc会回收name
+        if (type != TYPE_SCRIPT) {
             // name string需要在function前创建
-            // 否则析构的时候会析构string，导致function中的name指向无效
-            name = NewString(token.lexeme);
+            // 否则ObjPool析构的时候会先析构string，导致function中的name指向无效，function析构时输出的函数名不正确
+            // 先不管析构，先创建function，以后可以优化为先创建string且mark时保持，或者ObjPool析构时处理依赖关系
+            function->name = NewString(token.lexeme);
         }
-        function = NewFunction(name);
         type = type;
         chunk = function->chunk;
 

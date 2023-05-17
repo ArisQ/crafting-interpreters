@@ -23,8 +23,8 @@ const ObjString *ObjOwner::NewString(const ObjString *const a, const ObjString *
 const ObjString *ObjOwner::NewString(const std::string &s) {
     return pool.internedString(new ObjString(s));
 }
-ObjFunction *ObjOwner::NewFunction(const ObjString *name) {
-    auto func = new ObjFunction(name);
+ObjFunction *ObjOwner::NewFunction() {
+    auto func = new ObjFunction();
     pool.insertObj((Obj *)func);
     return func;
 }
@@ -50,12 +50,18 @@ Table ObjPool::strings;
 void ObjPool::collectGarbage() {
 #ifdef DEBUG_LOG_GC
     std::cout << "-- gc begin" << std::endl;
+    size_t before = bytesAllocated;
 #endif
     markRoots();
     traceReferences();
     sweep();
+    nextGC = bytesAllocated * 2; // GC_HEAP_GROW_FACTOR=2
 #ifdef DEBUG_LOG_GC
     std::cout << "-- gc end" << std::endl;
+    std::cout << "   collect " << before - bytesAllocated
+              << " bytes (from " << before
+              << " to " << bytesAllocated
+              << ") next at " << nextGC << std::endl;
 #endif
 }
 
@@ -84,9 +90,14 @@ void ObjPool::blackenObject(Obj *o) {
     case OBJ_NATIVE:
     case OBJ_STRING:
         break;
-    case OBJ_UPVALUE:
-        markValue(*((ObjUpvalue *)o)->closed);
+    case OBJ_UPVALUE: {
+        auto upvalue = (ObjUpvalue *)o;
+        // upvalue的closed是指针，未closed时可能是nullptr
+        if (upvalue->closed != nullptr) {
+            markValue(*upvalue->closed);
+        }
         break;
+    }
     case OBJ_FUNCTION: {
         auto fn = (ObjFunction*)o;
         markObj((Obj*)fn->name);

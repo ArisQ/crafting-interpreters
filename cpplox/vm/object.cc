@@ -4,7 +4,7 @@
 
 namespace vm {
 
-ObjFunction::ObjFunction(const ObjString *name) : obj(OBJ_FUNCTION), arity(0), chunk(new Chunk()), name(name), upvalueCount(0) {}
+ObjFunction::ObjFunction() : obj(OBJ_FUNCTION), arity(0), chunk(new Chunk()), name(nullptr), upvalueCount(0) {}
 
 ObjFunction::~ObjFunction() {
     auto n = "script";

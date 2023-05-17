@@ -65,7 +65,7 @@ struct Obj {
     }
     void mark() {
 #ifdef DEBUG_LOG_GC
-        std::cout << (void*)this <<" mark " << this << std::endl;
+        std::cout << (void *)this << " mark " << this << std::endl;
 #endif
         isMarked = true;
     }
@@ -153,7 +153,7 @@ struct ObjFunction {
 
     ~ObjFunction();
 private:
-    ObjFunction(const ObjString *name = nullptr);
+    ObjFunction();
     friend class ObjMgr;
     friend class ObjOwner;
 };
@@ -194,7 +194,6 @@ struct ObjClosure {
         delete[] upvalues;
     }
 };
-
 
 }
 
