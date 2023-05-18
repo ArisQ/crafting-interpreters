@@ -13,6 +13,7 @@ namespace vm {
 
 typedef enum {
     TYPE_FUNCTION,
+    TYPE_METHOD,
     TYPE_SCRIPT,
 } FunctionType;
 
@@ -36,6 +37,8 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOw
     ObjFunction *function;
     FunctionType type;
     Chunk *chunk;
+
+    Token *klass = nullptr;
 
     int currentLine = 0; // 不准确
 
@@ -342,6 +345,10 @@ public:
     }
     void visitFunction(Function *s) {
         currentLine = s->name.line;
+        if (klass == nullptr) emitFunction(s);
+        else emitMethod(s);
+    }
+    void emitFunction(Function *s) {
         uint8_t var; //global var
         if (scopeDepth > 0) { // local
             addLocal(s->name); // declareVariable
@@ -366,6 +373,26 @@ public:
             writeOp(OP_DEFINE_GLOBAL);
             writeArg(var);
         }
+    }
+    void emitMethod(Function *s) {
+        accessVariable(*klass);
+        auto name = identifierConstant(s->name);
+
+        // method (TYPE_FUNCTION);
+        Compiler compiler(pool, TYPE_FUNCTION, s->name);
+        compiler.enclosing = this;
+        compiler.currentLine = currentLine;
+        auto f = compiler.buildFunction(s);
+        writeOp(OP_CLOSURE);
+        writeArg(makeConstant(OBJ_VAL(f)));
+        for (int i = 0; i < f->upvalueCount; ++i) {
+            writeArg(compiler.upvalues[i].isLocal?1:0);
+            writeArg(compiler.upvalues[i].index);
+        }
+
+        writeOp(OP_METHOD);
+        writeArg(name);
+        writeOp(OP_POP); // pop class name
     }
     void visitReturn(Return *s) {
         if (type == TYPE_SCRIPT) {
@@ -399,6 +426,12 @@ public:
             writeOp(OP_DEFINE_GLOBAL);
             writeArg(name);
         }
+
+        klass = &s->name;
+        for (auto &m : s->methods) {
+            m->accept(this);
+        }
+        klass = nullptr;
     }
     void visitIf(If *s) {
         s->condition->accept(this);

@@ -56,6 +56,8 @@ ObjInstance *ObjOwner::NewInstance(ObjClass *klass) {
     pool.insertObj((Obj *)instance);
     return instance;
 }
+ObjBoundMethod *ObjOwner::NewBoundMethod(Value &receiver, ObjClosure *method) {
+}
 
 Table ObjPool::strings;
 
@@ -124,6 +126,7 @@ void ObjPool::blackenObject(Obj *o) {
     case OBJ_CLASS: {
         auto klass = (ObjClass*)o;
         markObj((Obj *)klass->name);
+        markTable(klass->methods);
         break;
     }
     case OBJ_INSTANCE: {

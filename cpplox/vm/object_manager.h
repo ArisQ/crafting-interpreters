@@ -24,6 +24,7 @@ protected:
     ObjNative *NewNative(NativeFn function);
     ObjClass *NewClass(ObjString *name);
     ObjInstance *NewInstance(ObjClass *klass);
+    ObjBoundMethod *NewBoundMethod(Value &receiver, ObjClosure *method);
 
     virtual void mark() = 0;
 

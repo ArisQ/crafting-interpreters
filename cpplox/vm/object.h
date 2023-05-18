@@ -25,6 +25,7 @@ typedef enum {
     OBJ_NATIVE,
     OBJ_CLASS,
     OBJ_INSTANCE,
+    OBJ_BOUND_METHOD,
 } ObjType;
 
 #ifdef DEBUG_LOG_GC
@@ -201,6 +202,8 @@ struct ObjClosure {
 struct ObjClass {
     Obj obj;
     ObjString *name;
+    Table methods;
+
     ObjClass(ObjString *name) : obj(OBJ_CLASS), name(name) {}
 };
 
@@ -210,6 +213,14 @@ struct ObjInstance {
     Table fields;
 
     ObjInstance(ObjClass *klass) : obj(OBJ_INSTANCE), klass(klass) {}
+};
+
+struct ObjBoundMethod {
+    Obj obj;
+    Value receiver;
+    ObjClosure *method;
+
+    ObjBoundMethod(Value &receiver, ObjClosure *method) : obj(OBJ_BOUND_METHOD), receiver(receiver), method(method) {}
 };
 
 static inline bool isObjType(Value value, ObjType type) {

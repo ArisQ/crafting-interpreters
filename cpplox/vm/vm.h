@@ -376,6 +376,13 @@ public:
                 push(OBJ_VAL(NewClass(readString())));
                 break;
             }
+            case OP_METHOD: {
+                auto method = peek(0);
+                auto klass = AS_CLASS(peek(1));
+                klass->methods.set(readString(), method);
+                pop();
+                break;
+            }
             case OP_GET_PROPERTY: {
                 if(!IS_INSTANCE(peek(0))) {
                     runtimeError("Only instance have properties.");
