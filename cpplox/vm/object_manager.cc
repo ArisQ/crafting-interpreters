@@ -16,6 +16,9 @@ void ObjOwner::markObj(Obj *o) {
 void ObjOwner::markValue(Value &v) {
     pool.markValue(v);
 }
+void ObjOwner::markTable(Table &t) {
+    pool.markTable(t);
+}
 
 const ObjString *ObjOwner::NewString(const ObjString *const a, const ObjString *const b) {
     return pool.internedString(new ObjString(a, b));
@@ -43,7 +46,16 @@ ObjNative *ObjOwner::NewNative(NativeFn function) {
     pool.insertObj((Obj*)native);
     return native;
 }
-
+ObjClass *ObjOwner::NewClass(ObjString *name) {
+    auto klass = new ObjClass(name);
+    pool.insertObj((Obj *)klass);
+    return klass;
+}
+ObjInstance *ObjOwner::NewInstance(ObjClass *klass) {
+    auto instance = new ObjInstance(klass);
+    pool.insertObj((Obj *)instance);
+    return instance;
+}
 
 Table ObjPool::strings;
 
@@ -92,10 +104,7 @@ void ObjPool::blackenObject(Obj *o) {
         break;
     case OBJ_UPVALUE: {
         auto upvalue = (ObjUpvalue *)o;
-        // upvalue的closed是指针，未closed时可能是nullptr
-        if (upvalue->closed != nullptr) {
-            markValue(*upvalue->closed);
-        }
+        markValue(upvalue->closed);
         break;
     }
     case OBJ_FUNCTION: {
@@ -110,6 +119,17 @@ void ObjPool::blackenObject(Obj *o) {
         for(int i=0;i<closure->upvalueCount;i++) {
             markObj((Obj*)closure->upvalues[i]);
         }
+        break;
+    }
+    case OBJ_CLASS: {
+        auto klass = (ObjClass*)o;
+        markObj((Obj *)klass->name);
+        break;
+    }
+    case OBJ_INSTANCE: {
+        auto instance = (ObjInstance*)o;
+        markObj((Obj *)instance->klass);
+        markTable(instance->fields);
         break;
     }
     default:
@@ -153,6 +173,13 @@ void ObjPool::markValue(Value &v) {
 void ObjPool::markArray(ValueArray *a) {
     for(int i =0;i<a->count;i++) {
         markValue(a->values[i]);
+    }
+}
+void ObjPool::markTable(Table &t) {
+    for (int i = 0; i < t.capacity; ++i) {
+        auto entry = &(t.entries)[i];
+        markObj((Obj *)entry->key);
+        markValue(entry->value);
     }
 }
 void ObjPool::addGray(Obj *o) {

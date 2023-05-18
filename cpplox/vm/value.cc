@@ -1,5 +1,6 @@
 #include <iostream>
 #include "value.h"
+#include "object.h"
 
 namespace vm
 {

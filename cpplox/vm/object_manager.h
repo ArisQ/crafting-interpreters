@@ -22,11 +22,15 @@ protected:
     ObjClosure *NewClosure(ObjFunction *function);
     ObjUpvalue *NewUpvalue(Value *value);
     ObjNative *NewNative(NativeFn function);
+    ObjClass *NewClass(ObjString *name);
+    ObjInstance *NewInstance(ObjClass *klass);
 
     virtual void mark() = 0;
 
     void markObj(Obj *o);
     void markValue(Value &v);
+    void markTable(Table &t);
+
 public:
     ObjOwner(ObjPool &);
     ~ObjOwner();
@@ -80,6 +84,7 @@ class ObjPool {
     void markObj(Obj *o);
     void markValue(Value &v);
     void markArray(ValueArray *a);
+    void markTable(Table &t);
     void addGray(Obj *o);
 
     void freeObj(Obj *object) {
@@ -98,12 +103,28 @@ class ObjPool {
             delete func;
             break;
         }
+        case OBJ_CLOSURE: {
+            auto closure = (ObjClosure *)object;
+            delete closure;
+            break;
+        }
         case OBJ_NATIVE: {
             auto native = (ObjNative *)object;
             delete native;
             break;
         }
-        default: break;
+        case OBJ_CLASS: {
+            auto klass = (ObjClass *)object;
+            delete klass;
+            break;
+        }
+        case OBJ_INSTANCE: {
+            auto instance = (ObjInstance *)object;
+            delete instance;
+            break;
+        }
+        default:
+            std::cout << "invalid object type" << object->type << std::endl;
         }
     }
 public:
@@ -126,14 +147,20 @@ public:
         case OBJ_CLOSURE: return sizeof(ObjClosure);
         case OBJ_UPVALUE: return sizeof(ObjUpvalue);
         case OBJ_NATIVE: return sizeof(ObjNative);
-        default: return 0;
+        case OBJ_CLASS: return sizeof(ObjClass);
+        case OBJ_INSTANCE: return sizeof(ObjInstance);
+        default: return -1;
         }
     }
 
     void insertObj(Obj *o) {
+#ifdef DEBUG_STRESS_GC
+        collectGarbage();
+#else
         bytesAllocated += objSize(o);
         if (bytesAllocated > nextGC)
             collectGarbage();
+#endif
         o->next = objects;
         objects = o; 
     }

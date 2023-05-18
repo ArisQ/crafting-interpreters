@@ -13,12 +13,8 @@ ObjFunction::~ObjFunction() {
     delete chunk;
 }
 
-ObjUpvalue::ObjUpvalue(Value *loc) : obj(OBJ_UPVALUE), location(loc), next(nullptr), closed(nullptr) {}
-ObjUpvalue::~ObjUpvalue() {
-    if(closed!=nullptr) {
-        delete closed;
-    }
-}
+ObjUpvalue::ObjUpvalue(Value *loc) : obj(OBJ_UPVALUE), location(loc), next(nullptr), closed(NIL_VAL) {}
+ObjUpvalue::~ObjUpvalue() {}
 
 std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
     os << '*';
@@ -41,6 +37,14 @@ std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
     case OBJ_UPVALUE: os << "upvalue"; break;
     case OBJ_NATIVE: {
         os << "<native fn>";
+        break;
+    }
+    case OBJ_CLASS: {
+        os << "<class "<< ((ObjClass*)obj)->name->chars << ">";
+        break;
+    }
+    case OBJ_INSTANCE: {
+        os << "<"<< ((ObjInstance*)obj)->klass->name->chars << " instance>";
         break;
     }
     default: os << "unknown object type " << obj->type; break;

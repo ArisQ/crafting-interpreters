@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "object.h"
 
 namespace vm {
 
@@ -90,6 +91,7 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     }
     case OP_CLOSE_UPVALUE: return simpleInstruction(os, "OP_CLOSE_UPVALUE", offset);
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
+    case OP_CLASS: return constantInstruction(os, "OP_CLASS", chunk, offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;
         return offset + 1;

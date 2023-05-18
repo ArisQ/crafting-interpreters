@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "config.h"
+#include "table.h"
 
 #ifdef DEBUG_LOG_GC
 #include <map>
@@ -22,6 +23,8 @@ typedef enum {
     OBJ_CLOSURE,
     OBJ_UPVALUE,
     OBJ_NATIVE,
+    OBJ_CLASS,
+    OBJ_INSTANCE,
 } ObjType;
 
 #ifdef DEBUG_LOG_GC
@@ -169,7 +172,7 @@ struct ObjNative {
 struct ObjUpvalue {
     Obj obj;
     Value *location;
-    Value *closed;
+    Value closed;
     ObjUpvalue *next;
 
     ObjUpvalue(Value *loc = nullptr);
@@ -194,6 +197,37 @@ struct ObjClosure {
         delete[] upvalues;
     }
 };
+
+struct ObjClass {
+    Obj obj;
+    ObjString *name;
+    ObjClass(ObjString *name) : obj(OBJ_CLASS), name(name) {}
+};
+
+struct ObjInstance {
+    Obj obj;
+    ObjClass *klass;
+    Table fields;
+
+    ObjInstance(ObjClass *klass) : obj(OBJ_INSTANCE), klass(klass) {}
+};
+
+static inline bool isObjType(Value value, ObjType type) {
+    return IS_OBJ(value) && AS_OBJ(value)->type == type;
+}
+#define IS_STRING(v) isObjType(v, OBJ_STRING)
+#define IS_FUNCTION(v) isObjType(v, OBJ_FUNCTION)
+#define IS_CLOSURE(v) isObjType(v, OBJ_CLOSURE)
+#define IS_NATIVE(v) isObjType(v, OBJ_NATIVE)
+#define IS_CLASS(v) isObjType(v, OBJ_CLASS)
+#define IS_INSTANCE(v) isObjType(v, OBJ_INSTANCE)
+#define AS_STRING(v) ((ObjString*)AS_OBJ(v))
+#define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
+#define AS_FUNCTION(v) ((ObjFunction*)AS_OBJ(v))
+#define AS_CLOSURE(v) ((ObjClosure*)AS_OBJ(v))
+#define AS_NATIVE(v) (((ObjNative*)AS_OBJ(v))->function)
+#define AS_CLASS(v) ((ObjClass*)AS_OBJ(v))
+#define AS_INSTANCE(v) ((ObjInstance*)AS_OBJ(v))
 
 }
 

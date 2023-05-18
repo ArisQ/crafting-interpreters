@@ -365,7 +365,28 @@ public:
         }
         writeOp(OP_RETURN);
     }
-    void visitClass(Class *) {}
+    void visitClass(Class *s) {
+        /*
+            declareVariable: addLocal，全局变量直接返回
+            defineVariable: 局部变量调用markInitialized，全局变量写入OP_DEFINE_GLOBAL
+            markInitialized: 标记局部变量depth，全局变量直接返回
+            identifierConstant: 增加string常量
+        */
+        currentLine = s->name.line;
+        auto name = identifierConstant(s->name);
+        if (scopeDepth > 0) {                      // local
+            addLocal(s->name); // declareVariable
+        }
+        writeOp(OP_CLASS);
+        writeArg(name);
+
+        if (scopeDepth > 0) {
+            markInitialized();
+        } else {
+            writeOp(OP_DEFINE_GLOBAL);
+            writeArg(name);
+        }
+    }
     void visitIf(If *s) {
         s->condition->accept(this);
         auto thenJump = writeJump(OP_JUMP_IF_ELSE);

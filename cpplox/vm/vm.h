@@ -53,7 +53,7 @@ class VM : public ObjOwner {
     }
     inline void push(Value value) { *stackTop++ = value; }
     inline Value pop() { return *--stackTop; }
-    inline Value peek(int distance) { return stackTop[-1-distance]; }
+    inline Value &peek(int distance) { return stackTop[-1-distance]; }
     // inline void binaryOp(std::function<double(double,double)> op) {
     //     push(op(pop(), pop()));
     // }
@@ -92,6 +92,12 @@ class VM : public ObjOwner {
                 auto result = native(argCount, stackTop - argCount);
                 stackTop -= (argCount+1);
                 push(result);
+                return true;
+            }
+            case OBJ_CLASS: {
+                auto klass = AS_CLASS(callee);
+                // stackTop[-argCount-1] = OBJ_VAL(NewInstance(klass));
+                peek(argCount) = OBJ_VAL(NewInstance(klass));
                 return true;
             }
             default: break;
@@ -144,8 +150,8 @@ class VM : public ObjOwner {
 #ifdef DEBUG_TRACE_EXECUTION
             std::cout << "closing " << upvalue->location << " '" << *upvalue->location << "'" << std::endl;
 #endif
-            upvalue->closed = new Value(*upvalue->location);
-            upvalue->location = upvalue->closed;
+            upvalue->closed = *upvalue->location;
+            upvalue->location = &upvalue->closed;
             openUpvalues = upvalue->next;
         }
     }
@@ -161,11 +167,7 @@ class VM : public ObjOwner {
             markObj((Obj *)v);
         }
         // globals
-        for (int i = 0; i < globals.capacity; ++i) {
-            auto entry = &(globals.entries)[i];
-            markObj((Obj*)entry->key);
-            markValue(entry->value);
-        }
+        markTable(globals);
     }
 
 public:
@@ -368,6 +370,10 @@ public:
                 stackTop = frame->slots;
                 push(result);
                 frame = &frames[frameCount - 1];
+                break;
+            }
+            case OP_CLASS: {
+                push(OBJ_VAL(NewClass(readString())));
                 break;
             }
             default:

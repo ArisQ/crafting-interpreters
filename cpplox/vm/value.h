@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "object.h"
+// #include "object.h"
 
 namespace vm {
 
@@ -13,6 +13,8 @@ typedef enum {
     VAL_NUMBER,
     VAL_OBJ,
 } ValueType;
+
+struct Obj;
 
 struct Value {
     ValueType type;
@@ -38,20 +40,6 @@ struct Value {
 #define IS_NIL(v) ((v).type == VAL_NIL)
 #define IS_NUMBER(v) ((v).type == VAL_NUMBER)
 #define IS_OBJ(v) ((v).type == VAL_OBJ)
-
-static inline bool isObjType(Value value, ObjType type) {
-    return IS_OBJ(value) && AS_OBJ(value)->type == type;
-}
-#define IS_STRING(v) isObjType(v, OBJ_STRING)
-#define IS_FUNCTION(v) isObjType(v, OBJ_FUNCTION)
-#define IS_CLOSURE(v) isObjType(v, OBJ_CLOSURE)
-#define IS_NATIVE(v) isObjType(v, OBJ_NATIVE)
-#define AS_STRING(v) ((ObjString*)AS_OBJ(v))
-#define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
-#define AS_FUNCTION(v) ((ObjFunction*)AS_OBJ(v))
-#define AS_CLOSURE(v) ((ObjClosure*)AS_OBJ(v))
-#define AS_NATIVE(v) (((ObjNative*)AS_OBJ(v))->function)
-
 
 std::ostream &operator<<(std::ostream &os, const Value &v);
 bool operator==(const Value l, const Value r);
