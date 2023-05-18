@@ -376,6 +376,30 @@ public:
                 push(OBJ_VAL(NewClass(readString())));
                 break;
             }
+            case OP_GET_PROPERTY: {
+                if(!IS_INSTANCE(peek(0))) {
+                    runtimeError("Only instance have properties.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                auto instance = AS_INSTANCE(peek(0));
+                auto name = readString();
+                Value v(NIL_VAL);
+                if (instance->fields.get(name, &v)) {
+                    pop();
+                    push(v);
+                    break;
+                }
+                runtimeError("Undefined property '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            case OP_SET_PROPERTY: {
+                auto instance = AS_INSTANCE(peek(1));
+                instance->fields.set(readString(), peek(0));
+                auto value = pop();
+                pop();
+                push(value);
+                break;
+            }
             default:
                 runtimeError("Invalid instruction %d", instruction);
                 return INTERPRET_RUNTIME_ERROR;

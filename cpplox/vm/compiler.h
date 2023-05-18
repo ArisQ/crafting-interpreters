@@ -257,8 +257,21 @@ public:
         writeOp(OP_CALL);
         writeArg(argCount);
     }
-    void visitGet(Get *) {}
-    void visitSet(Set *) {}
+    void visitGet(Get *e) {
+        currentLine = e->name.line;
+        e->object->accept(this);
+        auto name = identifierConstant(e->name);
+        writeOp(OP_GET_PROPERTY);
+        writeArg(name);
+    }
+    void visitSet(Set *e) {
+        currentLine = e->name.line;
+        e->object->accept(this);
+        auto name = identifierConstant(e->name);
+        e->value->accept(this);
+        writeOp(OP_SET_PROPERTY);
+        writeArg(name);
+    }
     void visitThis(This *) {}
     void visitSuper(Super *) {}
     void visitGrouping(Grouping *e) {

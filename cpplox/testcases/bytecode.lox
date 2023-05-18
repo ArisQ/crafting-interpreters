@@ -125,7 +125,16 @@ print "x" + "y";
 print "a" + "b";
 
 var x = "1";
-for(var i=0;i<100;i=i+1) {
+for(var i=0;i<3;i=i+1) {
     x = x + x + "x";
 }
 print x;
+
+class x {
+}
+var y = x();
+y.a = 1;
+y.b = 1;
+print y.a;
+print y.b;
+print y.a + y.b;
