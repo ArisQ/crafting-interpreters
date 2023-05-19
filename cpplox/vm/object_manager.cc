@@ -57,6 +57,9 @@ ObjInstance *ObjOwner::NewInstance(ObjClass *klass) {
     return instance;
 }
 ObjBoundMethod *ObjOwner::NewBoundMethod(Value &receiver, ObjClosure *method) {
+    auto bm = new ObjBoundMethod(receiver, method);
+    pool.insertObj((Obj*)bm);
+    return bm;
 }
 
 Table ObjPool::strings;
@@ -88,7 +91,9 @@ void ObjPool::markRoots() {
 }
 
 void ObjPool::traceReferences() {
+#ifdef DEBUG_LOG_GC
     std::cout << "trace reference" << std::endl;
+#endif
     while(grayCount>0) {
         Obj *obj = grayStack[--grayCount];
         // std::cout<<obj<< std::endl;
@@ -133,6 +138,12 @@ void ObjPool::blackenObject(Obj *o) {
         auto instance = (ObjInstance*)o;
         markObj((Obj *)instance->klass);
         markTable(instance->fields);
+        break;
+    }
+    case OBJ_BOUND_METHOD: {
+        auto method = (ObjBoundMethod*)o;
+        markValue(method->receiver);
+        markObj((Obj *)method->method);
         break;
     }
     default:

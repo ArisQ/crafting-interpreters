@@ -116,6 +116,12 @@ public:
     }
 
     size_t addConstant(const Value value) {
+        auto cc = constants.getCount();
+        for (size_t i = 0; i < cc; ++i) {
+            if(constants.get(i)==value) {
+                return i;
+            }
+        }
         constants.write(value);
         return constants.getCount() - 1;
     }

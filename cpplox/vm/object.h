@@ -232,6 +232,7 @@ static inline bool isObjType(Value value, ObjType type) {
 #define IS_NATIVE(v) isObjType(v, OBJ_NATIVE)
 #define IS_CLASS(v) isObjType(v, OBJ_CLASS)
 #define IS_INSTANCE(v) isObjType(v, OBJ_INSTANCE)
+#define IS_BOUND_METHOD(v) isObjType(v, OBJ_BOUND_METHOD)
 #define AS_STRING(v) ((ObjString*)AS_OBJ(v))
 #define AS_CSTRING(v) (((ObjString*)AS_OBJ(v))->chars)
 #define AS_FUNCTION(v) ((ObjFunction*)AS_OBJ(v))
@@ -239,6 +240,7 @@ static inline bool isObjType(Value value, ObjType type) {
 #define AS_NATIVE(v) (((ObjNative*)AS_OBJ(v))->function)
 #define AS_CLASS(v) ((ObjClass*)AS_OBJ(v))
 #define AS_INSTANCE(v) ((ObjInstance*)AS_OBJ(v))
+#define AS_BOUND_METHOD(v) ((ObjBoundMethod*)AS_OBJ(v))
 
 }
 

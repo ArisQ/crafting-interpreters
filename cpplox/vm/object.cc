@@ -47,6 +47,10 @@ std::ostream &operator<<(std::ostream &os, const Obj * const obj) {
         os << "<"<< ((ObjInstance*)obj)->klass->name->chars << " instance>";
         break;
     }
+    case OBJ_BOUND_METHOD: {
+        os << "<bound "<< ((ObjBoundMethod*)obj)->method->function << " instance>";
+        break;
+    }
     default: os << "unknown object type " << obj->type; break;
     }
     return os;

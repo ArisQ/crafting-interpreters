@@ -124,6 +124,11 @@ class ObjPool {
             delete instance;
             break;
         }
+        case OBJ_BOUND_METHOD: {
+            auto method = (ObjBoundMethod *)object;
+            delete method;
+            break;
+        }
         default:
             std::cout << "invalid object type" << object->type << std::endl;
         }
@@ -150,6 +155,7 @@ public:
         case OBJ_NATIVE: return sizeof(ObjNative);
         case OBJ_CLASS: return sizeof(ObjClass);
         case OBJ_INSTANCE: return sizeof(ObjInstance);
+        case OBJ_BOUND_METHOD: return sizeof(ObjBoundMethod);
         default: return -1;
         }
     }

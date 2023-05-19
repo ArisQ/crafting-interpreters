@@ -275,7 +275,9 @@ public:
         writeOp(OP_SET_PROPERTY);
         writeArg(name);
     }
-    void visitThis(This *) {}
+    void visitThis(This *e) {
+        
+    }
     void visitSuper(Super *) {}
     void visitGrouping(Grouping *e) {
         e->expression->accept(this);

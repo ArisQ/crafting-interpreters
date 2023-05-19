@@ -100,6 +100,10 @@ class VM : public ObjOwner {
                 peek(argCount) = OBJ_VAL(NewInstance(klass));
                 return true;
             }
+            case OBJ_BOUND_METHOD: {
+                auto bound = AS_BOUND_METHOD(callee);
+                return call(bound->method, argCount);
+            }
             default: break;
             }
         }
@@ -154,6 +158,17 @@ class VM : public ObjOwner {
             upvalue->location = &upvalue->closed;
             openUpvalues = upvalue->next;
         }
+    }
+
+    bool bindMethod(ObjClass *klass, ObjString *name) {
+        Value method;
+        if(!klass->methods.get(name, &method)) {
+            return false;
+        }
+        auto bound = NewBoundMethod(peek(0), AS_CLOSURE(method));
+        pop(); // name
+        push(OBJ_VAL(bound));
+        return true;
     }
 
     void mark() {
@@ -396,8 +411,11 @@ public:
                     push(v);
                     break;
                 }
-                runtimeError("Undefined property '%s'.", name->chars);
-                return INTERPRET_RUNTIME_ERROR;
+                if(!bindMethod(instance->klass, name)) {
+                    runtimeError("Undefined property '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
             }
             case OP_SET_PROPERTY: {
                 auto instance = AS_INSTANCE(peek(1));
