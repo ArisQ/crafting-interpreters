@@ -12,9 +12,10 @@
 namespace vm {
 
 typedef enum {
-    TYPE_FUNCTION,
-    TYPE_METHOD,
     TYPE_SCRIPT,
+    TYPE_FUNCTION,
+    TYPE_INITIALIZER,
+    TYPE_METHOD,
 } FunctionType;
 
 struct Local {
@@ -31,6 +32,13 @@ struct Upvalue {
     uint8_t index;
 };
 
+struct ClassCompiler {
+    // ClassCompiler *enclosing = nullptr;
+    Token name;
+    ClassCompiler(Token &name) : name(name) {}
+};
+
+
 class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOwner {
     Compiler *enclosing = nullptr;
 
@@ -38,7 +46,8 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOw
     FunctionType type;
     Chunk *chunk;
 
-    Token *klass = nullptr;
+    ClassCompiler *currentClass = nullptr;
+    // Token *klass = nullptr;
 
     int currentLine = 0; // 不准确
 
@@ -277,6 +286,10 @@ public:
     }
     void visitThis(This *e) {
         currentLine = e->keyword.line;
+        if(currentClass==nullptr) {
+            error("Can't use 'this' outside of a class.");
+            return;
+        }
         accessVariable(e->keyword);
     }
     void visitSuper(Super *) {}
@@ -348,7 +361,7 @@ public:
     }
     void visitFunction(Function *s) {
         currentLine = s->name.line;
-        if (klass == nullptr) emitFunction(s);
+        if (currentClass == nullptr) emitFunction(s);
         else emitMethod(s);
     }
     void emitFunction(Function *s) {
@@ -363,8 +376,10 @@ public:
         // function(TYPE_FUNCTION);
         Compiler compiler(pool, TYPE_FUNCTION, s->name.lexeme);
         compiler.enclosing = this;
+        compiler.currentClass = currentClass;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
+        _hasError = compiler._hasError;
         writeOp(OP_CLOSURE);
         writeArg(makeConstant(OBJ_VAL(f)));
         for (int i = 0; i < f->upvalueCount; ++i) {
@@ -378,14 +393,17 @@ public:
         }
     }
     void emitMethod(Function *s) {
-        accessVariable(*klass);
+        accessVariable(currentClass->name);
         auto name = identifierConstant(s->name);
 
         // method (TYPE_FUNCTION);
-        Compiler compiler(pool, TYPE_METHOD, s->name.lexeme);
+        auto type = s->name.lexeme == "init" ? TYPE_INITIALIZER : TYPE_METHOD;
+        Compiler compiler(pool, type, s->name.lexeme);
         compiler.enclosing = this;
+        compiler.currentClass = currentClass;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
+        _hasError = compiler._hasError;
         writeOp(OP_CLOSURE);
         writeArg(makeConstant(OBJ_VAL(f)));
         for (int i = 0; i < f->upvalueCount; ++i) {
@@ -402,7 +420,13 @@ public:
             error("Can't return from top-level code.");
         }
         if(s->value != nullptr) {
+            if (type == TYPE_INITIALIZER) {
+                error("Can't return a value from an initializer.");
+            }
             s->value->accept(this);
+        } else if (type == TYPE_INITIALIZER) {
+            writeOp(OP_GET_LOCAL);
+            writeArg(0);
         } else {
             writeOp(OP_NIL);
         }
@@ -430,11 +454,13 @@ public:
             writeArg(name);
         }
 
-        klass = &s->name;
+        auto preClass = currentClass;
+        auto klass = ClassCompiler(s->name);
+        currentClass = &klass;
         for (auto &m : s->methods) {
             m->accept(this);
         }
-        klass = nullptr;
+        currentClass = preClass;
     }
     void visitIf(If *s) {
         s->condition->accept(this);
@@ -488,7 +514,7 @@ public:
         writeOp(OP_POP);
     }
 
-    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const std::string &name = "") : ObjOwner(objPool), function(nullptr) {
+    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const std::string &name = "") : ObjOwner(objPool), function(nullptr), type(type) {
         // 需要先初始化为nullptr再NewFuntion
         // 否则NewFunction的时候，compiler会mark未知的function
         function = NewFunction();
@@ -501,14 +527,13 @@ public:
             // 先不管析构，先创建function，以后可以优化为先创建string且mark时保持，或者ObjPool析构时处理依赖关系
             function->name = NewString(name);
         }
-        type = type;
         chunk = function->chunk;
 
         auto &local = locals[localCount++];
         local.depth = 0;
         local.name = "";
         local.isCaptured = false;
-        if (type == TYPE_METHOD) {
+        if (type == TYPE_METHOD || type == TYPE_INITIALIZER) {
             local.name = "this";
         }
     }
@@ -518,7 +543,12 @@ public:
             stmt->accept(this);
         }
         currentLine++;
-        writeOp(OP_NIL);
+        if (type == TYPE_INITIALIZER) {
+            writeOp(OP_GET_LOCAL);
+            writeArg(0);
+        } else {
+            writeOp(OP_NIL);
+        }
         writeOp(OP_RETURN);
 #ifdef DEBUG_PRINT_CODE
         std::cout << ChunkDebugName(function->name == nullptr ? "<script>" : function->name->chars) << *chunk << std::endl;

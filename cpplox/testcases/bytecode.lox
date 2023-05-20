@@ -90,6 +90,48 @@ print n;
 print "cost";
 print end - start;
 
+fun wrap(a) {
+    print "wraping";
+    print a;
+    var f;
+    {
+        var x = a;
+        fun f1() {
+            print x;
+        }
+        f = f1;
+    }
+    return f;
+}
+var x = wrap(1);
+x();
+
+{
+    var x = "x" + "y";
+    print x;
+    x = x + "z";
+    print x;
+    x = x + "a";
+    print x;
+}
+
+fun x() {
+    print 1;
+}
+x();
+var start = clock();
+fun fib(n) {
+    if(n<2) return n;
+    return fib(n-1)+fib(n-2);
+}
+var n = 36;
+print fib(n); //jlox fib(40) => 72s
+var end = clock();
+print "clox fib ";
+print n;
+print "cost";
+print end - start;
+
 var b = "hello";
 fun wrap(a) {
     print "wraping";
@@ -148,3 +190,43 @@ class c1 {
 var i1 = c1();
 i1.x = 10;
 i1.dump();
+var x = "1234567890";
+var y = x + x + x+ x + x+ x + x; 
+for(var i=0;i<10;i=i+1) {
+    y = y + x;
+}
+print y;
+
+fun dof(bonus) {
+    if(bonus==0) return 1;
+    return dof(bonus - 1);
+}
+print dof(1);
+
+class x{
+    do0(bonus) {
+        print this.v;
+        print this.x;
+    }
+    do(bonus) {
+        print this.do;
+        print this.v + bonus;
+        // this = 1;
+        class inner {
+            do() {
+                print this.x;
+            }
+        }
+        var i = inner();
+        i.x = 10;
+        i.do();
+    }
+    init(v) {
+        this.v = v;
+        return;
+    }
+}
+var a = x(1);
+a.v = 1;
+print a.do(1);
+print this;

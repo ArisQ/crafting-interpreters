@@ -41,6 +41,8 @@ class VM : public ObjOwner {
     Table globals;
     ObjUpvalue *openUpvalues;
 
+    const ObjString *initString;
+
     inline const uint8_t readByte() { return *frame->ip++; }
     inline const uint16_t readShort() { return (readByte() << 8) + readByte(); }
     inline const Value readConstant() { return frame->closure->function->chunk->getConstant(readByte()); }
@@ -98,6 +100,13 @@ class VM : public ObjOwner {
                 auto klass = AS_CLASS(callee);
                 // stackTop[-argCount-1] = OBJ_VAL(NewInstance(klass));
                 peek(argCount) = OBJ_VAL(NewInstance(klass));
+                Value initializer;
+                if(klass->methods.get(initString, &initializer)) {
+                    return call(AS_CLOSURE(initializer), argCount);
+                } else if (argCount != 0) {
+                    runtimeError("Expected 0 arguments but got %d.", argCount);
+                    return false;
+                }
                 return true;
             }
             case OBJ_BOUND_METHOD: {
@@ -185,13 +194,14 @@ class VM : public ObjOwner {
         }
         // globals
         markTable(globals);
+        markObj((Obj *)initString);
     }
 
 public:
     static Value clockNative(int argCount, Value *args) {
         return NUMBER_VAL(clock());
     }
-    VM(ObjPool &pool) : ObjOwner(pool), openUpvalues(nullptr), stackTop(stack), frame(nullptr) {
+    VM(ObjPool &pool) : ObjOwner(pool), openUpvalues(nullptr), stackTop(stack), frame(nullptr), initString(NewString("init")) {
         resetStack();
         defineNative("clock", clockNative);
     }
