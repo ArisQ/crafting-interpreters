@@ -102,6 +102,8 @@ class VM : public ObjOwner {
             }
             case OBJ_BOUND_METHOD: {
                 auto bound = AS_BOUND_METHOD(callee);
+                // stackTop[-argCount-1] = bound->receiver;
+                peek(argCount) = bound->receiver;
                 return call(bound->method, argCount);
             }
             default: break;

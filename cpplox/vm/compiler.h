@@ -18,11 +18,11 @@ typedef enum {
 } FunctionType;
 
 struct Local {
-    Token name;
+    std::string name;
     int depth;
     bool isCaptured;
     Local()
-        : name(Token(TOKEN_EOF, "", -1, nullptr)),
+        : name(""),
           depth(-1),
           isCaptured(false) {}
 };
@@ -141,7 +141,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOw
             if (local.depth != -1 && local.depth < scopeDepth) {
                 break;
             }
-            if (name.lexeme == local.name.lexeme) { // identifiersEqual
+            if (name.lexeme == local.name) { // identifiersEqual
                 error("Already variable with this name in this scope.");
                 return;
             }
@@ -151,7 +151,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOw
             return;
         }
         auto &local = locals[localCount++];
-        local.name = name;
+        local.name = name.lexeme;
         local.depth = -1;
     }
     void markInitialized() {
@@ -162,7 +162,7 @@ class Compiler: public ExprVisitor<void>, public StmtVisitor<void>, public ObjOw
     size_t resolveLocal(const Token &name) {
         for (size_t i = localCount; i-- > 0;) {
             auto &local = locals[i];
-            if (name.lexeme == local.name.lexeme) {
+            if (name.lexeme == local.name) {
                 if (local.depth == -1) {
                     error("Can't read local variable in its own initializer.");
                 }
@@ -276,7 +276,8 @@ public:
         writeArg(name);
     }
     void visitThis(This *e) {
-        
+        currentLine = e->keyword.line;
+        accessVariable(e->keyword);
     }
     void visitSuper(Super *) {}
     void visitGrouping(Grouping *e) {
@@ -360,7 +361,7 @@ public:
         }
 
         // function(TYPE_FUNCTION);
-        Compiler compiler(pool, TYPE_FUNCTION, s->name);
+        Compiler compiler(pool, TYPE_FUNCTION, s->name.lexeme);
         compiler.enclosing = this;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
@@ -381,7 +382,7 @@ public:
         auto name = identifierConstant(s->name);
 
         // method (TYPE_FUNCTION);
-        Compiler compiler(pool, TYPE_FUNCTION, s->name);
+        Compiler compiler(pool, TYPE_METHOD, s->name.lexeme);
         compiler.enclosing = this;
         compiler.currentLine = currentLine;
         auto f = compiler.buildFunction(s);
@@ -487,7 +488,7 @@ public:
         writeOp(OP_POP);
     }
 
-    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const Token token = Token(TOKEN_EOF, "", -1, nullptr)) : ObjOwner(objPool), function(nullptr) {
+    Compiler(ObjPool &objPool, FunctionType type = TYPE_SCRIPT, const std::string &name = "") : ObjOwner(objPool), function(nullptr) {
         // 需要先初始化为nullptr再NewFuntion
         // 否则NewFunction的时候，compiler会mark未知的function
         function = NewFunction();
@@ -498,15 +499,18 @@ public:
             // name string需要在function前创建
             // 否则ObjPool析构的时候会先析构string，导致function中的name指向无效，function析构时输出的函数名不正确
             // 先不管析构，先创建function，以后可以优化为先创建string且mark时保持，或者ObjPool析构时处理依赖关系
-            function->name = NewString(token.lexeme);
+            function->name = NewString(name);
         }
         type = type;
         chunk = function->chunk;
 
-        auto local = locals[localCount++];
+        auto &local = locals[localCount++];
         local.depth = 0;
-        local.name = token;
+        local.name = "";
         local.isCaptured = false;
+        if (type == TYPE_METHOD) {
+            local.name = "this";
+        }
     }
 
     ObjFunction *compile(std::vector<std::shared_ptr<Stmt>> stmts) {
