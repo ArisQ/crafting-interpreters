@@ -85,6 +85,30 @@ class VM : public ObjOwner {
         return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
     }
 
+    bool invoke(ObjString *name, int argCount) {
+        auto receiver = peek(argCount);
+        if(!IS_INSTANCE(receiver)) {
+            runtimeError("Only instance have methods.");
+            return false;
+        }
+        auto instance = AS_INSTANCE(receiver);
+
+        Value value;
+        if(instance->fields.get(name, &value)) {
+            peek(argCount) = value;
+            return callValue(value, argCount);
+        }
+
+        return invokeFromClass(instance->klass, name, argCount);
+    }
+    bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
+        Value method;
+        if(!klass->methods.get(name, &method)) {
+            runtimeError("Undefined property '%s'.", name->chars);
+            return false;
+        }
+        return call(AS_CLOSURE(method), argCount);
+    }
     bool callValue(Value callee, int argCount) {
         if(IS_OBJ(callee)) {
             switch (OBJ_TYPE(callee)) {
@@ -364,6 +388,15 @@ public:
                 if(!callValue(peek(argCount), argCount)) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
+                break;
+            }
+            case OP_INVOKE: {
+                auto method = readString();
+                auto argCount = readByte();
+                if(!invoke(method, argCount)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                // frame = &frames[--frameCount];
                 break;
             }
             case OP_CLOSURE: {

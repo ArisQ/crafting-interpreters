@@ -99,6 +99,11 @@ class ObjPool {
             delete str;
             break;
         }
+        case OBJ_UPVALUE: {
+            auto upvalue = (ObjUpvalue *)object;
+            delete upvalue;
+            break;
+        }
         case OBJ_FUNCTION: {
             auto func = (ObjFunction *)object;
             delete func;
@@ -130,7 +135,7 @@ class ObjPool {
             break;
         }
         default:
-            std::cout << "invalid object type" << object->type << std::endl;
+            std::cout << "invalid object type " << object->type << std::endl;
         }
     }
 public:

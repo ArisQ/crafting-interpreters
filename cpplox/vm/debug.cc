@@ -33,6 +33,17 @@ size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chun
        << chunk.getConstant(constant) << '\'' << std::endl;
     return offset + 2;
 }
+size_t invokeInstruction(std::ostream &os, const char *name, const Chunk &chunk, size_t offset)
+{
+    uint8_t constant = chunk.get(offset + 1);
+    uint8_t argCount = chunk.get(offset + 2);
+    os << std::setfill(' ') << std::setw(16) << std::left << name
+       << std::setfill(' ') << std::setw(4) << uint(constant) << " '"
+       << chunk.getConstant(constant) << "' args: "
+       << std::setfill(' ') << std::setw(4) << uint(argCount) << " '"
+       << std::endl;
+    return offset + 3;
+}
 
 size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offset)
 {
@@ -72,6 +83,7 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_JUMP: return jumpInstruction(os, "OP_JUMP", chunk, offset);
     case OP_LOOP: return jumpInstruction(os, "OP_LOOP", chunk, offset, -1);
     case OP_CALL: return byteInstruction(os, "OP_CALL", chunk, offset);
+    case OP_INVOKE: return invokeInstruction(os, "OP_INVOKE", chunk, offset);
     case OP_CLOSURE: {
         // return constantInstruction(os, "OP_CLOSURE", chunk, offset);
         ++offset;

@@ -223,10 +223,37 @@ class x{
     }
     init(v) {
         this.v = v;
-        return;
+
+        fun infunc() {
+            print "inside method function.";
+            print this.v;
+        }
+        this.infun = infunc;
     }
 }
 var a = x(1);
 a.v = 1;
 print a.do(1);
-print this;
+print a.infun();
+// print this;
+
+class fib {
+    calc(n) {
+        if(n<2) return n;
+        return this.calc(n-1) + this.calc(n-2);
+    }
+}
+var ins = fib();
+var start = clock();
+print ins.calc(35);
+print clock() - start;
+print "method cost";
+
+fun calc(n) {
+    if(n<2) return n;
+    return calc(n-1) + calc(n-2);
+}
+var start = clock();
+print calc(35);
+print clock() - start;
+print "func cost";

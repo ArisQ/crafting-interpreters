@@ -258,7 +258,12 @@ public:
         }
     }
     void visitCall(Call *e) {
-        e->callee->accept(this);
+        auto callee = std::dynamic_pointer_cast<Get>(e->callee);
+        if (callee==nullptr) {
+            e->callee->accept(this);
+        } else {
+            callee->object->accept(this);
+        }
         auto argCount = e->arguments.size();
         if(argCount>=255) {
             error("Can't have more than 255 arguments.");
@@ -266,7 +271,13 @@ public:
         for (const auto &arg : e->arguments) {
             arg->accept(this);
         }
-        writeOp(OP_CALL);
+        if (callee!=nullptr) {
+            auto name = identifierConstant(callee->name);
+            writeOp(OP_INVOKE);
+            writeArg(name);
+        } else {
+            writeOp(OP_CALL);
+        }
         writeArg(argCount);
     }
     void visitGet(Get *e) {
@@ -361,8 +372,7 @@ public:
     }
     void visitFunction(Function *s) {
         currentLine = s->name.line;
-        if (currentClass == nullptr) emitFunction(s);
-        else emitMethod(s);
+        emitFunction(s);
     }
     void emitFunction(Function *s) {
         uint8_t var; //global var
@@ -458,7 +468,7 @@ public:
         auto klass = ClassCompiler(s->name);
         currentClass = &klass;
         for (auto &m : s->methods) {
-            m->accept(this);
+            emitMethod(&(*m));
         }
         currentClass = preClass;
     }
