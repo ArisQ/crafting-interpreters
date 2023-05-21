@@ -257,3 +257,21 @@ var start = clock();
 print calc(35);
 print clock() - start;
 print "func cost";
+
+class Doughnut {
+    cook() {
+        print "Dunk in the fryer.";
+    }
+    finish() {
+        print "Doughnut parent.";
+    }
+}
+class Cruller < Doughnut {
+    finish() {
+        super.finish();
+        print "Glaze with icing";
+    }
+}
+var c = Cruller();
+c.finish();
+c.cook();

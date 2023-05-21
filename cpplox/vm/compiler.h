@@ -35,7 +35,8 @@ struct Upvalue {
 struct ClassCompiler {
     // ClassCompiler *enclosing = nullptr;
     Token name;
-    ClassCompiler(Token &name) : name(name) {}
+    bool hasSuperclass;
+    ClassCompiler(Token &name, bool hasSuperclass) : name(name), hasSuperclass(hasSuperclass) {}
 };
 
 
@@ -303,7 +304,14 @@ public:
         }
         accessVariable(e->keyword);
     }
-    void visitSuper(Super *) {}
+    void visitSuper(Super *s) {
+        currentLine = s->keyword.line;
+        auto name = identifierConstant(s->keyword);
+        accessVariable(Token(THIS, "this", currentLine, nullptr));
+        accessVariable(Token(SUPER, "super", currentLine, nullptr));
+        writeOp(OP_GET_SUPER);
+        writeArg(name);
+    }
     void visitGrouping(Grouping *e) {
         e->expression->accept(this);
     }
@@ -403,7 +411,6 @@ public:
         }
     }
     void emitMethod(Function *s) {
-        accessVariable(currentClass->name);
         auto name = identifierConstant(s->name);
 
         // method (TYPE_FUNCTION);
@@ -423,7 +430,6 @@ public:
 
         writeOp(OP_METHOD);
         writeArg(name);
-        writeOp(OP_POP); // pop class name
     }
     void visitReturn(Return *s) {
         if (type == TYPE_SCRIPT) {
@@ -465,11 +471,31 @@ public:
         }
 
         auto preClass = currentClass;
-        auto klass = ClassCompiler(s->name);
+        auto klass = ClassCompiler(s->name, s->superclass != nullptr);
         currentClass = &klass;
+
+        accessVariable(s->name);
+        if (s->superclass != nullptr) {
+            if (s->name.lexeme == s->superclass->name.lexeme) {
+                error("A class can't inherit from itself.");
+            }
+            beginScope();
+            addLocal(Token(SUPER, "super", currentLine, nullptr));
+            markInitialized();
+
+            accessVariable(s->superclass->name);
+            writeOp(OP_INHERIT);
+        }
+
         for (auto &m : s->methods) {
             emitMethod(&(*m));
         }
+        writeOp(OP_POP); // pop class name
+
+        if (s->superclass != nullptr) {
+            endScope();
+        }
+
         currentClass = preClass;
     }
     void visitIf(If *s) {

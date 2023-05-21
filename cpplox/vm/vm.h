@@ -436,6 +436,17 @@ public:
                 push(OBJ_VAL(NewClass(readString())));
                 break;
             }
+            case OP_INHERIT: {
+                auto superValue = peek(0);
+                auto klass = AS_CLASS(peek(1));
+                if(!IS_CLASS(superValue)) {
+                    runtimeError("Superclass must be a class.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                klass->methods.addAll(&AS_CLASS(superValue)->methods);
+                pop(); // super
+                break;
+            }
             case OP_METHOD: {
                 auto method = peek(0);
                 auto klass = AS_CLASS(peek(1));

@@ -105,6 +105,7 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_RETURN: return simpleInstruction(os, "OP_RETURN", offset);
     case OP_CLASS: return constantInstruction(os, "OP_CLASS", chunk, offset);
     case OP_METHOD: return constantInstruction(os, "OP_METHOD", chunk, offset);
+    case OP_INHERIT: return simpleInstruction(os, "OP_INHERIT", offset);
     case OP_GET_PROPERTY: return constantInstruction(os, "OP_GET_PROPERTY", chunk, offset);
     case OP_SET_PROPERTY: return constantInstruction(os, "OP_SET_PROPERTY", chunk, offset);
     default:
