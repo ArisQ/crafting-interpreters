@@ -108,6 +108,8 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
     case OP_INHERIT: return simpleInstruction(os, "OP_INHERIT", offset);
     case OP_GET_PROPERTY: return constantInstruction(os, "OP_GET_PROPERTY", chunk, offset);
     case OP_SET_PROPERTY: return constantInstruction(os, "OP_SET_PROPERTY", chunk, offset);
+    case OP_GET_SUPER: return constantInstruction(os, "OP_GET_SUPER", chunk, offset);
+    case OP_SUPER_INVOKE: return invokeInstruction(os, "OP_SUPER_INVOKE", chunk, offset);
     default:
         os << "Unknown opcode " << instruction << std::endl;
         return offset + 1;

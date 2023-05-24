@@ -444,7 +444,7 @@ public:
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 klass->methods.addAll(&AS_CLASS(superValue)->methods);
-                pop(); // super
+                pop(); // subclass
                 break;
             }
             case OP_METHOD: {
@@ -479,6 +479,14 @@ public:
                 auto value = pop();
                 pop();
                 push(value);
+                break;
+            }
+            case OP_GET_SUPER: {
+                auto name = readString();
+                auto superclass = AS_CLASS(pop());
+                if(!bindMethod(superclass, name)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             }
             default:

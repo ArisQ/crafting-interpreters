@@ -259,12 +259,24 @@ public:
         }
     }
     void visitCall(Call *e) {
-        auto callee = std::dynamic_pointer_cast<Get>(e->callee);
-        if (callee==nullptr) {
-            e->callee->accept(this);
+        currentLine = e->paren.line;
+        auto getCallee = std::dynamic_pointer_cast<Get>(e->callee);
+        auto superCallee = std::dynamic_pointer_cast<Super>(e->callee);
+        if (getCallee != nullptr) {
+            getCallee->object->accept(this);
+        } else if(superCallee!=nullptr) {
+            // do nothing
+            if (currentClass == nullptr) {
+                error("Can't use 'super' outside of a class.");
+            } else if (!currentClass->hasSuperclass) {
+                error("Can't use 'super' in a class with no superclass.");
+            }
+            accessVariable(Token(THIS, "this", currentLine, nullptr));
+            accessVariable(Token(SUPER, "super", currentLine, nullptr));
         } else {
-            callee->object->accept(this);
+            e->callee->accept(this);
         }
+
         auto argCount = e->arguments.size();
         if(argCount>=255) {
             error("Can't have more than 255 arguments.");
@@ -272,9 +284,13 @@ public:
         for (const auto &arg : e->arguments) {
             arg->accept(this);
         }
-        if (callee!=nullptr) {
-            auto name = identifierConstant(callee->name);
+        if (getCallee != nullptr) {
+            auto name = identifierConstant(getCallee->name);
             writeOp(OP_INVOKE);
+            writeArg(name);
+        } else if (superCallee != nullptr) {
+            auto name = identifierConstant(superCallee->method);
+            writeOp(OP_SUPER_INVOKE);
             writeArg(name);
         } else {
             writeOp(OP_CALL);
@@ -305,8 +321,13 @@ public:
         accessVariable(e->keyword);
     }
     void visitSuper(Super *s) {
+        if (currentClass == nullptr) {
+            error("Can't use 'super' outside of a class.");
+        } else if (!currentClass->hasSuperclass) {
+            error("Can't use 'super' in a class with no superclass.");
+        }
         currentLine = s->keyword.line;
-        auto name = identifierConstant(s->keyword);
+        auto name = identifierConstant(s->method);
         accessVariable(Token(THIS, "this", currentLine, nullptr));
         accessVariable(Token(SUPER, "super", currentLine, nullptr));
         writeOp(OP_GET_SUPER);
@@ -474,8 +495,7 @@ public:
         auto klass = ClassCompiler(s->name, s->superclass != nullptr);
         currentClass = &klass;
 
-        accessVariable(s->name);
-        if (s->superclass != nullptr) {
+        if (klass.hasSuperclass) {
             if (s->name.lexeme == s->superclass->name.lexeme) {
                 error("A class can't inherit from itself.");
             }
@@ -484,15 +504,17 @@ public:
             markInitialized();
 
             accessVariable(s->superclass->name);
+            accessVariable(s->name);
             writeOp(OP_INHERIT);
         }
 
+        accessVariable(s->name);
         for (auto &m : s->methods) {
             emitMethod(&(*m));
         }
         writeOp(OP_POP); // pop class name
 
-        if (s->superclass != nullptr) {
+        if (klass.hasSuperclass) {
             endScope();
         }
 
