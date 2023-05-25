@@ -1,0 +1,25 @@
+// valgrind --tool=callgrind ./build/cpplox testcases/benchmark2.lox
+// callgrind_annotate
+
+class X {
+    init() {
+        this.x = 1;
+        this.y = 1;
+        this.z = 1;
+    }
+    r() { return this.x; }
+    g() { return this.y; }
+    b() { return this.z; }
+}
+
+var x = X();
+var sum = 0;
+var start = clock();
+for(var i=0;i<1000000;i=i+1) {
+    sum = sum + x.r() + x.g() + x.b();
+}
+var end = clock();
+print start;
+print end;
+print end - start;
+print sum;

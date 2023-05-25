@@ -25,7 +25,8 @@ const ObjString *Table::findString(const ObjString *const key) {
 }
 
 Entry *Table::findEntry(const ObjString *const key) {
-    auto index = key->hash % capacity;
+    // auto index = key->hash % capacity;
+    auto index = key->hash & (capacity-1);
     Entry *tombstone = nullptr;
     for(;;) {
         Entry *entry = &entries[index]; // entries + index;
