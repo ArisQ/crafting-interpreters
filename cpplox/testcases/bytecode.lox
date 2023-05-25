@@ -82,7 +82,7 @@ fun fib(n) {
     if(n<2) return n;
     return fib(n-1)+fib(n-2);
 }
-var n = 36;
+var n = 5;
 print fib(n); //jlox fib(40) => 72s
 var end = clock();
 print "clox fib ";
@@ -124,7 +124,7 @@ fun fib(n) {
     if(n<2) return n;
     return fib(n-1)+fib(n-2);
 }
-var n = 36;
+var n = 5;
 print fib(n); //jlox fib(40) => 72s
 var end = clock();
 print "clox fib ";
@@ -245,7 +245,7 @@ class fib {
 }
 var ins = fib();
 var start = clock();
-print ins.calc(35);
+print ins.calc(5);
 print clock() - start;
 print "method cost";
 
@@ -254,7 +254,7 @@ fun calc(n) {
     return calc(n-1) + calc(n-2);
 }
 var start = clock();
-print calc(35);
+print calc(5);
 print clock() - start;
 print "func cost";
 
@@ -262,12 +262,16 @@ class Doughnut {
     cook() {
         print "Dunk in the fryer.";
     }
-    finish() {
+    finishs() {
         print "Doughnut parent.";
+    }
+    finish() {
+        print "Doughnut parent in finish.";
     }
 }
 class Cruller < Doughnut {
     finish() {
+        super.finishs();
         super.finish();
         print "Glaze with icing";
     }

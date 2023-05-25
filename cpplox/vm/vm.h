@@ -399,6 +399,16 @@ public:
                 // frame = &frames[--frameCount];
                 break;
             }
+            case OP_SUPER_INVOKE: {
+                auto method = readString();
+                auto argCount = readByte();
+                auto superclass = AS_CLASS(pop());
+                if (!invokeFromClass(superclass, method, argCount)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                // frame = &frames[--frameCount];
+                break;
+            }
             case OP_CLOSURE: {
                 auto function = AS_FUNCTION(readConstant());
                 auto closure = NewClosure(function);
@@ -437,8 +447,8 @@ public:
                 break;
             }
             case OP_INHERIT: {
-                auto superValue = peek(0);
-                auto klass = AS_CLASS(peek(1));
+                auto superValue = peek(1);
+                auto klass = AS_CLASS(peek(0));
                 if(!IS_CLASS(superValue)) {
                     runtimeError("Superclass must be a class.");
                     return INTERPRET_RUNTIME_ERROR;
