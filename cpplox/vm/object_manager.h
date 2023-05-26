@@ -53,7 +53,9 @@ class ObjPool {
     size_t nextGC = 1024 * 1024;
 
     void registerOwner(ObjOwner *o) {
+#ifdef DEBUG_LOG_GC
         std::cout << "register owner " << o << std::endl;
+#endif
         auto pre = owners;
         o->next = pre;
         owners = o;
@@ -141,7 +143,9 @@ class ObjPool {
 public:
     ObjPool() : objects(nullptr) {}
     ~ObjPool() {
+#ifdef DEBUG_LOG_GC
         printf("destruct obj pool\n");
+#endif
         free(grayStack);
         auto object = objects;
         while(object != nullptr) {

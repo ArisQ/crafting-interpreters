@@ -9,7 +9,9 @@ ObjFunction::ObjFunction() : obj(OBJ_FUNCTION), arity(0), chunk(new Chunk()), na
 ObjFunction::~ObjFunction() {
     auto n = "script";
     if (name != nullptr) n = name->chars;
+#ifdef DEBUG_LOG_GC
     std::cout << "free func " << n <<std::endl;
+#endif
     delete chunk;
 }
 

@@ -19,19 +19,19 @@ struct Table {
     static constexpr double TABLE_MAX_LOAD = 0.75;
 
     size_t count;
-    size_t capacity;
+    size_t capacityMask; // capacityMask = capacity - 1
     Entry *entries;
 
-    Table() : count(0), capacity(0), entries(nullptr) {}
+    Table() : count(0), capacityMask(-1), entries(nullptr) {}
     ~Table() {
         free(entries);
         entries = nullptr;
         count = 0;
-        capacity = 0;
+        capacityMask = -1;
     }
 
     bool set(ObjString *const key, Value value) {
-        if(count+1>capacity*TABLE_MAX_LOAD) {
+        if (count + 1 > (capacityMask + 1) * TABLE_MAX_LOAD) {
             adjustCapacity();
         }
         auto entry = findEntry(key);
@@ -59,7 +59,7 @@ struct Table {
     }
 
     void addAll(Table *from) {
-        for (int i = 0; i < from->capacity; ++i) {
+        for (int i = 0; i <= from->capacityMask; ++i) {
             auto entry = &from->entries[i];
             if (entry->key != nullptr) {
                 set(entry->key, entry->value);
@@ -73,9 +73,9 @@ private:
     Entry *findEntry(const ObjString *const key);
     void adjustCapacity() {
         auto oldEntries = entries;
-        auto oldCapacity = capacity;
-
-        capacity = capacity < 8 ? 8 : (capacity << 1); // grow capacity
+        auto oldCapacity = capacityMask + 1;
+        auto capacity = oldCapacity < 8 ? 8 : (oldCapacity << 1); // grow capacity
+        capacityMask = capacity - 1;
         entries = (Entry *)malloc(sizeof(Entry) * capacity);
         for (int i = 0; i < capacity; ++i) {
             entries[i].key = nullptr;

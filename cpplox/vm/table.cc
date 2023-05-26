@@ -5,7 +5,7 @@ namespace vm {
 
 const ObjString *Table::findString(const ObjString *const key) {
     if (count == 0) return nullptr;
-    for (auto index = key->hash % capacity; /**/; index = (index + 1) % capacity)
+    for (auto index = key->hash & capacityMask; /**/; index = (index + 1) & capacityMask)
     {
         Entry *entry = &entries[index]; // entries + index;
         auto k = entry->key;
@@ -26,7 +26,7 @@ const ObjString *Table::findString(const ObjString *const key) {
 
 Entry *Table::findEntry(const ObjString *const key) {
     // auto index = key->hash % capacity;
-    auto index = key->hash & (capacity-1);
+    auto index = key->hash & capacityMask;
     Entry *tombstone = nullptr;
     for(;;) {
         Entry *entry = &entries[index]; // entries + index;
@@ -39,7 +39,7 @@ Entry *Table::findEntry(const ObjString *const key) {
         } else if (entry->key == key) {
             return entry;
         }
-        index = (index + 1) % capacity;
+        index = (index + 1) & capacityMask;
     }
 }
 }

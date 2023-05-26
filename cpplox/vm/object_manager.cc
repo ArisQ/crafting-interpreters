@@ -190,7 +190,7 @@ void ObjPool::markArray(ValueArray *a) {
     }
 }
 void ObjPool::markTable(Table &t) {
-    for (int i = 0; i < t.capacity; ++i) {
+    for (int i = 0; i <= t.capacityMask; ++i) {
         auto entry = &(t.entries)[i];
         markObj((Obj *)entry->key);
         markValue(entry->value);

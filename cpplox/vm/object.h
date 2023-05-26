@@ -88,7 +88,9 @@ struct ObjString {
 
     ~ObjString() {
         if (chars!=nullptr) {
+#ifdef DEBUG_LOG_GC
             fprintf(stderr, "free str %s\n", chars);
+#endif
             free((void *)chars);
         }
     }
