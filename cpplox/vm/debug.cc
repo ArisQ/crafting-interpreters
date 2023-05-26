@@ -30,7 +30,7 @@ size_t constantInstruction(std::ostream &os, const char *name, const Chunk &chun
     uint8_t constant = chunk.get(offset + 1);
     os << std::setfill(' ') << std::setw(16) << std::left << name
        << std::setfill(' ') << std::setw(4) << uint(constant) << " '"
-       << chunk.getConstant(constant) << '\'' << std::endl;
+       << ValuePrinter(chunk.getConstant(constant)) << '\'' << std::endl;
     return offset + 2;
 }
 size_t invokeInstruction(std::ostream &os, const char *name, const Chunk &chunk, size_t offset)
@@ -39,7 +39,7 @@ size_t invokeInstruction(std::ostream &os, const char *name, const Chunk &chunk,
     uint8_t argCount = chunk.get(offset + 2);
     os << std::setfill(' ') << std::setw(16) << std::left << name
        << std::setfill(' ') << std::setw(4) << uint(constant) << " '"
-       << chunk.getConstant(constant) << "' args: "
+       << ValuePrinter(chunk.getConstant(constant)) << "' args: "
        << std::setfill(' ') << std::setw(4) << uint(argCount) << " '"
        << std::endl;
     return offset + 3;
@@ -90,7 +90,7 @@ size_t disassembleInstruction(std::ostream &os, const Chunk &chunk, size_t offse
         uint8_t constant = chunk.get(offset++);
         os << std::setfill(' ') << std::setw(16) << std::left << "OP_CLOSURE"
            << std::setfill(' ') << std::setw(4) << uint(constant) << " "
-           << chunk.getConstant(constant) << std::endl;
+           << ValuePrinter(chunk.getConstant(constant)) << std::endl;
         auto fn = AS_FUNCTION(chunk.getConstant(constant));
         for (int j = 0; j < fn->upvalueCount; ++j) {
             int isLocal = chunk.get(offset++);

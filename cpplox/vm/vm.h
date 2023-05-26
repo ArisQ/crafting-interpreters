@@ -172,7 +172,7 @@ class VM : public ObjOwner {
             return upvalue;
         }
 #ifdef DEBUG_TRACE_EXECUTION
-        std::cout << "capture " << value << " '" << *value << "'" << std::endl;
+        std::cout << "capture " << value << " '" << ValuePrinter(*value) << "'" << std::endl;
 #endif
         auto createdUpvalue = NewUpvalue(value);
         createdUpvalue->next=upvalue;
@@ -187,7 +187,7 @@ class VM : public ObjOwner {
         while (openUpvalues != nullptr && openUpvalues->location >= last) {
             auto upvalue = openUpvalues;
 #ifdef DEBUG_TRACE_EXECUTION
-            std::cout << "closing " << upvalue->location << " '" << *upvalue->location << "'" << std::endl;
+            std::cout << "closing " << upvalue->location << " '" << ValuePrinter(*upvalue->location) << "'" << std::endl;
 #endif
             upvalue->closed = *upvalue->location;
             upvalue->location = &upvalue->closed;
@@ -263,7 +263,7 @@ public:
 #ifdef DEBUG_TRACE_EXECUTION
             std::cout << "          ";
             for (Value *slot = stack; slot < stackTop; slot++) {
-                std::cout << "[ " << *slot << " ]";
+                std::cout << "[ " << ValuePrinter(*slot) << " ]";
             }
             std::cout << std::endl;
             disassembleInstruction(std::cout, *frame->closure->function->chunk, (size_t)(frame->ip - frame->closure->function->chunk->code));
@@ -316,7 +316,7 @@ public:
                 push(BOOL_VAL(isFalsey(pop())));
                 break;
             case OP_PRINT:
-                std::cout << pop() << std::endl;
+                std::cout << ValuePrinter(pop()) << std::endl;
                 break;
             case OP_POP: pop(); break;
             case OP_DEFINE_GLOBAL: {

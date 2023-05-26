@@ -2,8 +2,9 @@
 #define _VM_VALUE_H_
 
 #include <memory>
+#include <cstring>
 
-// #include "object.h"
+#include "config.h"
 
 namespace vm {
 
@@ -16,6 +17,51 @@ typedef enum {
 
 struct Obj;
 
+#ifdef NAN_BOXING
+
+#define QNAN      ((uint64_t)0x7ffc000000000000)
+#define SIGN_BIT  ((uint64_t)0x8000000000000000)
+#define TAG_NIL   ((uint64_t)0b01)
+#define TAG_FALSE ((uint64_t)0b10)
+#define TAG_TRUE  ((uint64_t)0b11)
+
+typedef uint64_t Value;
+
+static inline Value numToValue(double num) {
+    Value value;
+    memcpy(&value, &num, sizeof(double));
+    return value;
+    // union {
+    //     Value bits;
+    //     double num;
+    // } data;
+    // data.num = num;
+    // return data.bits;
+}
+static inline double valueToNum(Value value) {
+    double num;
+    memcpy(&num, &value, sizeof(Value));
+    return num;
+}
+
+#define NIL_VAL     ((Value)(QNAN | TAG_NIL))
+#define FALSE_VAL   ((Value)(QNAN | TAG_FALSE))
+#define TRUE_VAL    ((Value)(QNAN | TAG_TRUE))
+#define BOOL_VAL(v) ((v) ? TRUE_VAL : FALSE_VAL)
+
+#define NUMBER_VAL(v) numToValue(v)
+#define OBJ_VAL(v)    ((Value)(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(v)))
+
+#define AS_BOOL(v)   ((v) == TRUE_VAL)
+#define AS_NUMBER(v) valueToNum(v)
+#define AS_OBJ(v)    ((Obj *)((v) & ~(SIGN_BIT | QNAN)))
+
+#define IS_BOOL(v)   (((v) | 1) == TRUE_VAL)
+#define IS_NIL(v)    ((v) == NIL_VAL)
+#define IS_NUMBER(v) (((v)&QNAN) != QNAN)
+#define IS_OBJ(v)    (((v) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT))
+
+#else
 struct Value {
     ValueType type;
     union {
@@ -41,9 +87,16 @@ struct Value {
 #define IS_NUMBER(v) ((v).type == VAL_NUMBER)
 #define IS_OBJ(v) ((v).type == VAL_OBJ)
 
-std::ostream &operator<<(std::ostream &os, const Value &v);
 bool operator==(const Value l, const Value r);
-bool valuesEqual(const Value l, const Value r);
+#endif
+
+class ValuePrinter {
+    Value v;
+public:
+    ValuePrinter(Value v) : v(v) {}
+    friend std::ostream &operator<<(std::ostream &os, const ValuePrinter &p);
+};
+// std::ostream &operator<<(std::ostream &os, const ValuePrinter &v);
 
 class ValueArray {
     friend class ObjPool;

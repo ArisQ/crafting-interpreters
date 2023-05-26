@@ -4,27 +4,28 @@
 
 namespace vm
 {
-    void Value::mark() {
-        if (!IS_OBJ(*this))
-            return;
-        AS_OBJ(*this)->mark();
-    }
-    std::ostream &operator<<(std::ostream &os, const Value &v)
-    {
-        switch (v.type)
-        {
-        case VAL_NUMBER: os<<v.as.number; break;
-        case VAL_BOOL: os<<(v.as.boolean?"true":"false"); break;
-        case VAL_NIL: os<<"nil"; break;
-        case VAL_OBJ: os<<v.as.obj; break;
-        default: break;
+    std::ostream &operator<<(std::ostream &os, const ValuePrinter &p) {
+        auto v = p.v;
+        if(IS_BOOL(v)) {
+            os << (AS_BOOL(v)? "true" : "false");
+        } if(IS_NIL(v)) {
+            os << "nil";
+        } if(IS_NUMBER(v)) {
+            os << AS_NUMBER(v);
+        } if(IS_OBJ(v)) {
+            os << AS_OBJ(v);
         }
         return os;
     }
 
-    bool operator==(const Value l, const Value r) {
-        return valuesEqual(l, r);
+#ifdef NAN_BOXING
+    bool valuesEqual(const Value l, const Value r) {
+        if(IS_NUMBER(l) && IS_NUMBER(r)) {
+            return AS_NUMBER(l) == AS_NUMBER(r);
+        }
+        return l == r;
     }
+#else
     bool valuesEqual(const Value l, const Value r) {
         if (l.type!=r.type) return false;
         switch (l.type)
@@ -41,4 +42,8 @@ namespace vm
         }
         return false;
     }
+    bool operator==(const Value l, const Value r) {
+        return valuesEqual(l, r);
+    }
+#endif
 }

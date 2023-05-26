@@ -164,7 +164,7 @@ private:
     friend class ObjOwner;
 };
 
-struct Value;
+// struct Value;
 typedef Value (*NativeFn) (int argCount, Value *args);
 struct ObjNative {
     Obj obj;
